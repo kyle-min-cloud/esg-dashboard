@@ -455,6 +455,7 @@ const ESG_DATA = {
     <button class="seg-btn" onclick="showTab('env', this)">환경 E</button>
     <button class="seg-btn" onclick="showTab('social', this)">사회 S</button>
     <button class="seg-btn" onclick="showTab('gov', this)">지배구조 G</button>
+    <button class="seg-btn" onclick="showTab('collection', this)">취합현황</button>
     <button class="seg-btn" onclick="showTab('roadmap', this)">개선 로드맵</button>
   </div>
   <span class="note-badge">※ KCGS 점수는 2025년 평가 기준 참조값</span>
@@ -554,6 +555,56 @@ const ESG_DATA = {
     <div class="card" style="margin-top:0">
       <div class="card-title">KCGS 지배구조 핵심 항목 현황</div>
       <ul class="checklist" id="gov-checklist"></ul>
+    </div>
+  </div>
+
+  <!-- ══ 취합현황 탭 ══ -->
+  <div class="tab-panel" id="tab-collection">
+    <div class="section-title">2025년 ESG 데이터 취합현황</div>
+
+    <!-- 영역별 진행률 요약 -->
+    <div class="grid-4" id="collection-summary"></div>
+
+    <!-- 마감일 배너 -->
+    <div id="collection-deadline-banner" style="margin-bottom:20px;padding:12px 16px;background:#fff8e1;border:1px solid #fde68a;border-radius:8px;font-size:13px;color:#b5740a;display:flex;justify-content:space-between;align-items:center">
+      <span>1차 마감일: <strong>2026년 5월 11일</strong></span>
+      <span id="collection-dday" style="font-family:'DM Mono',monospace;font-weight:500"></span>
+    </div>
+
+    <!-- 부서별 체크리스트 -->
+    <div class="card" style="margin-bottom:16px">
+      <div class="card-title">부서별 제출 현황</div>
+      <table class="data-table" id="collection-table">
+        <thead>
+          <tr>
+            <th>부서</th>
+            <th>담당자</th>
+            <th>영역</th>
+            <th>항목 수</th>
+            <th>상태</th>
+            <th>제출일시</th>
+            <th>비고</th>
+          </tr>
+        </thead>
+        <tbody id="collection-tbody"></tbody>
+      </table>
+    </div>
+
+    <!-- ESG팀 확인 현황 -->
+    <div class="grid-3" id="collection-confirm-cards"></div>
+
+    <!-- 제출 링크 안내 -->
+    <div class="card">
+      <div class="card-title">담당자 제출 링크</div>
+      <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap">
+        <span style="font-family:'DM Mono',monospace;font-size:12px;background:var(--bg);padding:8px 14px;border-radius:6px;border:1px solid var(--border);flex:1">
+          https://kyle-min-cloud.github.io/esg-dashboard/input.html
+        </span>
+        <button onclick="navigator.clipboard.writeText('https://kyle-min-cloud.github.io/esg-dashboard/input.html')" style="padding:8px 16px;border:1px solid var(--border);border-radius:6px;background:var(--surface);font-size:12px;cursor:pointer;font-family:'Noto Sans KR',sans-serif;white-space:nowrap">
+          링크 복사
+        </button>
+      </div>
+      <p style="font-size:12px;color:var(--text-3);margin-top:10px">담당자에게 위 링크를 공유하세요. 제출 완료 후 submission.json의 status를 "submitted"로 변경하면 현황이 업데이트됩니다.</p>
     </div>
   </div>
 
@@ -969,16 +1020,114 @@ function renderRoadmap() {
   });
 }
 
+// ── 취합현황 데이터 ──
+const SUBMISSION_DATA = {
+  "meta": { "deadline_1st": "2026-05-11", "report_year": 2025 },
+  "departments": [
+    { "dept_id": "env_01", "dept_name": "공무팀",    "contact": "이종현", "company": "daewoong_pharma", "domain": "E",   "domain_label": "환경",    "status": "pending",   "submitted_at": null, "confirmed_at": null, "reject_reason": null, "item_count": 254, "note": "" },
+    { "dept_id": "soc_01", "dept_name": "인재관리팀","contact": "김혜진", "company": "daewoong_pharma", "domain": "S",   "domain_label": "사회",    "status": "pending",   "submitted_at": null, "confirmed_at": null, "reject_reason": null, "item_count": 328, "note": "" },
+    { "dept_id": "soc_02", "dept_name": "ESG팀",     "contact": "허기석", "company": "daewoong_pharma", "domain": "S",   "domain_label": "사회",    "status": "pending",   "submitted_at": null, "confirmed_at": null, "reject_reason": null, "item_count": 54,  "note": "산업안전보건" },
+    { "dept_id": "gov_01", "dept_name": "IR팀",      "contact": "탁효철", "company": "daewoong_pharma", "domain": "G",   "domain_label": "지배구조", "status": "pending",   "submitted_at": null, "confirmed_at": null, "reject_reason": null, "item_count": 130, "note": "" },
+    { "dept_id": "eco_01", "dept_name": "IR팀",      "contact": "탁효철", "company": "daewoong_pharma", "domain": "ECO", "domain_label": "경제",    "status": "pending",   "submitted_at": null, "confirmed_at": null, "reject_reason": null, "item_count": 118, "note": "" },
+    { "dept_id": "env_02", "dept_name": "공무팀",    "contact": "이종현", "company": "daewoong",         "domain": "E",   "domain_label": "환경",    "status": "pending",   "submitted_at": null, "confirmed_at": null, "reject_reason": null, "item_count": 254, "note": "대웅(지주)" },
+    { "dept_id": "gov_02", "dept_name": "IR팀",      "contact": "탁효철", "company": "daewoong",         "domain": "G",   "domain_label": "지배구조", "status": "pending",   "submitted_at": null, "confirmed_at": null, "reject_reason": null, "item_count": 130, "note": "대웅(지주)" }
+  ]
+};
+
+// ── 취합현황 탭 렌더 ──
+function renderCollection() {
+  const depts = SUBMISSION_DATA.departments.filter(d => d.company === currentCompany);
+  const domains = currentCompany === 'daewoong_pharma'
+    ? ['E','S','G','ECO'] : ['E','G'];
+
+  // D-Day 계산
+  const deadline = new Date('2026-05-11');
+  const today = new Date();
+  const diff = Math.ceil((deadline - today) / (1000 * 60 * 60 * 24));
+  document.getElementById('collection-dday').textContent =
+    diff > 0 ? `D-${diff}` : diff === 0 ? 'D-Day' : `D+${Math.abs(diff)} 마감 초과`;
+
+  // 상태 카운트 헬퍼
+  const statusCount = (list, s) => list.filter(d => d.status === s).length;
+  const DOMAIN_LABELS = { E:'환경', S:'사회', G:'지배구조', ECO:'경제' };
+  const DOMAIN_COLORS = { E:'#d8f3dc', S:'#dbeafe', G:'#ede9fe', ECO:'#fff3cd' };
+  const STATUS_STYLE  = {
+    pending:   { label:'미제출', color:'var(--text-3)',  bg:'var(--bg)' },
+    submitted: { label:'제출완료', color:'#1d4e89',       bg:'#dbeafe'   },
+    confirmed: { label:'확인완료', color:'var(--green)',   bg:'var(--green-light)' },
+    rejected:  { label:'반려',     color:'var(--red)',     bg:'var(--red-light)' }
+  };
+
+  // ① 영역별 요약 카드
+  document.getElementById('collection-summary').innerHTML = domains.map(domain => {
+    const list = depts.filter(d => d.domain === domain);
+    const total = list.length;
+    const done  = statusCount(list, 'confirmed') + statusCount(list, 'submitted');
+    const pct   = total ? Math.round(done / total * 100) : 0;
+    return `<div class="card" style="border-top:3px solid ${DOMAIN_COLORS[domain]}">
+      <div class="card-title">${DOMAIN_LABELS[domain]} (${domain})</div>
+      <div style="display:flex;align-items:baseline;gap:6px;margin:8px 0 4px">
+        <span style="font-size:28px;font-weight:700;font-family:'DM Mono',monospace">${done}</span>
+        <span style="font-size:13px;color:var(--text-2)">/ ${total}</span>
+      </div>
+      <div style="font-size:12px;color:var(--text-2);margin-bottom:10px">작성 완료</div>
+      <div style="height:6px;background:var(--border);border-radius:3px;overflow:hidden">
+        <div style="height:100%;width:${pct}%;background:${pct===100?'var(--green)':'#1d4e89'};border-radius:3px;transition:width 0.4s"></div>
+      </div>
+      <div style="display:flex;justify-content:space-between;margin-top:8px;font-size:11px;color:var(--text-3)">
+        <span>전체 ${total}</span>
+        <span>미작성 ${total - done}</span>
+      </div>
+    </div>`;
+  }).join('');
+
+  // ② 부서별 체크리스트 테이블
+  document.getElementById('collection-tbody').innerHTML = depts.map(d => {
+    const s = STATUS_STYLE[d.status] || STATUS_STYLE.pending;
+    return `<tr>
+      <td style="font-family:'Noto Sans KR',sans-serif;font-weight:500">${d.dept_name}</td>
+      <td>${d.contact}</td>
+      <td><span style="padding:2px 8px;border-radius:4px;font-size:11px;background:${DOMAIN_COLORS[d.domain]}">${d.domain_label}</span></td>
+      <td>${d.item_count}</td>
+      <td><span style="padding:3px 10px;border-radius:4px;font-size:12px;font-weight:500;color:${s.color};background:${s.bg}">${s.label}</span></td>
+      <td>${d.submitted_at || '—'}</td>
+      <td style="font-size:12px;color:var(--text-3)">${d.note || ''}</td>
+    </tr>`;
+  }).join('');
+
+  // ③ ESG팀 확인 현황 카드
+  const confirmed = statusCount(depts, 'confirmed');
+  const submitted = statusCount(depts, 'submitted');
+  const rejected  = statusCount(depts, 'rejected');
+  const pending   = statusCount(depts, 'pending');
+  const confirmCards = [
+    { label: '확인 완료', count: confirmed, color: 'var(--green)',   bg: 'var(--green-light)' },
+    { label: '검토 대기', count: submitted, color: '#1d4e89',         bg: '#dbeafe'             },
+    { label: '반려',      count: rejected,  color: 'var(--red)',      bg: 'var(--red-light)'    },
+    { label: '미제출',    count: pending,   color: 'var(--text-3)',   bg: 'var(--bg)'           }
+  ];
+  document.getElementById('collection-confirm-cards').innerHTML = '';
+  const grid = document.getElementById('collection-confirm-cards');
+  grid.style.marginBottom = '16px';
+  grid.innerHTML = confirmCards.map(c => `
+    <div class="card" style="text-align:center">
+      <div class="card-title">${c.label}</div>
+      <div style="font-size:36px;font-weight:700;font-family:'DM Mono',monospace;color:${c.color};margin:8px 0">${c.count}</div>
+      <div style="font-size:12px;color:var(--text-2)">건</div>
+    </div>`).join('');
+}
+
 // ── 전체 렌더 ──
 function renderAll() {
   const activeTab = document.querySelector('.tab-panel.active');
   if (!activeTab) return;
   const id = activeTab.id.replace('tab-', '');
-  if (id === 'overview') renderOverview();
-  else if (id === 'env')  renderEnv();
+  if (id === 'overview')    renderOverview();
+  else if (id === 'env')    renderEnv();
   else if (id === 'social') renderSocial();
-  else if (id === 'gov')  renderGov();
-  else if (id === 'roadmap') renderRoadmap();
+  else if (id === 'gov')    renderGov();
+  else if (id === 'collection') renderCollection();
+  else if (id === 'roadmap')    renderRoadmap();
 }
 
 // ── 초기화 ──
