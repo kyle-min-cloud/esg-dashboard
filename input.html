@@ -200,6 +200,10 @@
 <header class="header">
   <span class="logo">DAEWOONG GROUP</span>
   <span class="header-title">ESG 데이터 제출</span>
+  <div style="margin-left:auto;display:flex;align-items:center;gap:12px">
+    <span id="input-user-badge" style="font-size:11px;font-family:'DM Mono',monospace;opacity:0.6"></span>
+    <button onclick="sessionStorage.removeItem('esg_user');location.href='login.html'" style="font-size:11px;font-family:'Noto Sans KR',sans-serif;background:transparent;border:1px solid rgba(255,255,255,0.3);color:#fff;padding:4px 10px;border-radius:4px;cursor:pointer;opacity:0.7">로그아웃</button>
+  </div>
 </header>
 
 <main class="main">
@@ -294,6 +298,17 @@
 
 </div>
 </main>
+
+<script>
+// ── 인증 가드 ──
+const _session = sessionStorage.getItem('esg_user');
+if (!_session) { location.href = 'login.html'; }
+const _user = _session ? JSON.parse(_session) : {};
+document.addEventListener('DOMContentLoaded', () => {
+  const badge = document.getElementById('input-user-badge');
+  if (badge) badge.textContent = _user.name || '';
+});
+</script>
 
 <script>
 const SUBMISSION_DATA = {
@@ -405,10 +420,29 @@ function submitData() {
   const contact = document.getElementById("contact-input").value.trim();
   const note = document.getElementById("note-input").value.trim();
 
+  // admin 직접 제출 시 자동 confirmed, 나머지는 submitted
+  const isAdmin = _user.role === 'admin';
+  const resultStatus = isAdmin ? 'confirmed' : 'submitted';
+
+  // sessionStorage에 제출 정보 저장 → dashboard 복귀 시 배지 표시
+  sessionStorage.setItem('esg_submitted', JSON.stringify({
+    dept_id:      dept.dept_id,
+    dept_name:    dept.dept_name,
+    domain:       dept.domain,
+    domain_label: dept.domain_label,
+    contact,
+    submitted_at: now,
+    status:       resultStatus
+  }));
+
   // 완료 화면 전환
   document.getElementById("step2").style.display = "none";
   document.getElementById("step3").style.display = "block";
   setStep(3);
+
+  const autoNote = isAdmin
+    ? `<div style="margin-top:8px;padding:8px 12px;background:#d8f3dc;border-radius:6px;font-size:12px;color:#065f46">Admin 직접 제출 — 자동으로 확인 완료(confirmed) 처리됩니다.</div>`
+    : `<div style="margin-top:8px;padding:8px 12px;background:#fff8e1;border-radius:6px;font-size:12px;color:#92400e">제출 완료 후 Admin이 확인하면 상태가 업데이트됩니다.</div>`;
 
   document.getElementById("complete-info").innerHTML = `
     <div class="complete-info-row"><span class="info-label">법인</span><span class="info-value">${COMPANY_LABELS[dept.company]}</span></div>
@@ -416,12 +450,15 @@ function submitData() {
     <div class="complete-info-row"><span class="info-label">담당자</span><span class="info-value">${contact}</span></div>
     <div class="complete-info-row"><span class="info-label">제출 영역</span><span class="info-value">${dept.domain_label} (${dept.domain})</span></div>
     <div class="complete-info-row"><span class="info-label">제출 일시</span><span class="info-value">${now}</span></div>
-    ${note ? `<div class="complete-info-row"><span class="info-label">특이사항</span><span class="info-value">${note}</span></div>` : ""}
-    <div style="margin-top:14px;padding:12px;background:#f0fdf4;border-radius:6px;font-size:12px;color:#2d6a4f;line-height:1.7">
-      ESG팀에서 아래 내용을 <strong>submission.json</strong>에 반영합니다:<br>
-      dept_id: <strong>${dept.dept_id}</strong> → status: <strong>"submitted"</strong><br>
-      submitted_at: <strong>"${now}"</strong>
-    </div>`;
+    <div class="complete-info-row"><span class="info-label">상태</span><span class="info-value" style="color:${isAdmin ? 'var(--green)' : '#1d4e89'}">${isAdmin ? '✅ 확인 완료' : '⏳ 처리 중'}</span></div>
+    ${note ? `<div class="complete-info-row"><span class="info-label">특이사항</span><span class="info-value">${note}</span></div>` : ''}
+    ${autoNote}
+    <div style="margin-top:12px;padding:10px 12px;background:#f0f0ec;border-radius:6px;font-size:11px;font-family:'DM Mono',monospace;color:var(--text-2)">
+      submission.json → dept_id: <strong>${dept.dept_id}</strong> → status: <strong>"${resultStatus}"</strong>
+    </div>
+    <button onclick="location.href='dashboard.html'" style="width:100%;margin-top:16px;padding:12px;background:var(--accent);color:#fff;border:none;border-radius:8px;font-size:14px;font-weight:500;font-family:'Noto Sans KR',sans-serif;cursor:pointer">
+      대시보드로 돌아가기
+    </button>`;
 }
 
 function setStep(n) {

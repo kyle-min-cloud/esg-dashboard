@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>대웅그룹 ESG 시스템 — 로그인</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700&family=DM+Mono:wght@400;500&display=swap');
+  :root {
+    --bg: #f4f4f0; --surface: #ffffff; --border: #e2e2da;
+    --text-1: #1a1a18; --text-2: #5a5a54; --text-3: #9a9a92;
+    --accent: #1a1a18; --red: #c1121f; --red-bg: #fce4e4;
+    --radius: 8px;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: 'Noto Sans KR', sans-serif;
+    background: var(--bg);
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 24px;
+  }
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 44px 44px 36px;
+    width: 100%;
+    max-width: 400px;
+  }
+  .logo-wrap {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 32px;
+  }
+  .logo {
+    font-family: 'DM Mono', monospace;
+    font-size: 10px;
+    background: var(--accent);
+    color: #fff;
+    padding: 4px 10px;
+    border-radius: 4px;
+    letter-spacing: 0.05em;
+  }
+  .logo-title { font-size: 14px; font-weight: 500; color: var(--text-2); }
+  .form-title { font-size: 22px; font-weight: 700; margin-bottom: 6px; }
+  .form-sub   { font-size: 13px; color: var(--text-2); margin-bottom: 28px; }
+  .field { margin-bottom: 16px; }
+  .field label {
+    display: block; font-size: 12px; font-weight: 500;
+    color: var(--text-2); margin-bottom: 6px; letter-spacing: 0.04em;
+  }
+  .field input {
+    width: 100%; padding: 11px 14px;
+    border: 1px solid var(--border); border-radius: var(--radius);
+    font-size: 14px; font-family: 'Noto Sans KR', sans-serif;
+    color: var(--text-1); background: var(--surface);
+    transition: border-color 0.15s;
+  }
+  .field input:focus { outline: none; border-color: var(--accent); }
+  .error-msg {
+    display: none;
+    background: var(--red-bg);
+    border: 1px solid #fca5a5;
+    border-radius: var(--radius);
+    padding: 10px 14px;
+    font-size: 13px;
+    color: var(--red);
+    margin-bottom: 16px;
+  }
+  .error-msg.visible { display: block; }
+  .btn {
+    width: 100%; padding: 13px;
+    background: var(--accent); color: #fff;
+    border: none; border-radius: var(--radius);
+    font-size: 14px; font-weight: 500;
+    font-family: 'Noto Sans KR', sans-serif;
+    cursor: pointer; transition: opacity 0.15s;
+    margin-top: 4px;
+  }
+  .btn:hover { opacity: 0.85; }
+  .hint {
+    margin-top: 20px;
+    padding: 14px;
+    background: var(--bg);
+    border-radius: var(--radius);
+    font-size: 12px;
+    color: var(--text-3);
+    line-height: 1.8;
+  }
+  .hint strong { color: var(--text-2); }
+</style>
+</head>
+<body>
+
+<div class="card">
+  <div class="logo-wrap">
+    <span class="logo">DAEWOONG GROUP</span>
+    <span class="logo-title">ESG 통합관리시스템</span>
+  </div>
+
+  <div class="form-title">로그인</div>
+  <div class="form-sub">계정 정보를 입력해 주세요.</div>
+
+  <div class="error-msg" id="error-msg">아이디 또는 비밀번호가 올바르지 않습니다.</div>
+
+  <div class="field">
+    <label>아이디</label>
+    <input type="text" id="input-id" placeholder="ID를 입력해 주세요" autocomplete="username" />
+  </div>
+  <div class="field">
+    <label>비밀번호</label>
+    <input type="password" id="input-pw" placeholder="비밀번호를 입력해 주세요" autocomplete="current-password" />
+  </div>
+
+  <button class="btn" onclick="doLogin()">로그인</button>
+</div>
+
+<script>
+const ACCOUNTS = {
+  admin1:   { pw: "admin1",   role: "admin",   name: "ESG팀 관리자 1",   redirect: "dashboard.html" },
+  admin2:   { pw: "admin2",   role: "admin",   name: "ESG팀 관리자 2",   redirect: "dashboard.html" },
+  manager1: { pw: "manager1", role: "manager", name: "ESG팀 매니저 1",   redirect: "dashboard.html" },
+  manager2: { pw: "manager2", role: "manager", name: "ESG팀 매니저 2",   redirect: "dashboard.html" },
+  user1:    { pw: "user1",    role: "user",    name: "공무팀 이종현",     redirect: "dashboard.html" },
+  user2:    { pw: "user2",    role: "user",    name: "인재관리팀 김혜진", redirect: "dashboard.html" },
+  user3:    { pw: "user3",    role: "user",    name: "IR팀 탁효철",       redirect: "dashboard.html" }
+};
+
+// 이미 로그인된 경우 자동 이동
+const session = sessionStorage.getItem("esg_user");
+if (session) { location.href = "dashboard.html"; }
+
+document.getElementById("input-pw").addEventListener("keydown", e => {
+  if (e.key === "Enter") doLogin();
+});
+document.getElementById("input-id").addEventListener("keydown", e => {
+  if (e.key === "Enter") document.getElementById("input-pw").focus();
+});
+
+function doLogin() {
+  const id = document.getElementById("input-id").value.trim();
+  const pw = document.getElementById("input-pw").value;
+  const acc = ACCOUNTS[id];
+
+  if (!acc || acc.pw !== pw) {
+    document.getElementById("error-msg").classList.add("visible");
+    document.getElementById("input-pw").value = "";
+    document.getElementById("input-pw").focus();
+    return;
+  }
+
+  sessionStorage.setItem("esg_user", JSON.stringify({
+    id, role: acc.role, name: acc.name
+  }));
+  location.href = acc.redirect;
+}
+</script>
+</body>
+</html>
