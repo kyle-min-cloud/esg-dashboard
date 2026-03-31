@@ -326,7 +326,41 @@ const ESG_DATA = {
       }
     }
   },
-  "governance": {
+  "social": {
+    "daewoong_pharma": {
+      "employees": {
+        "total":             { "2022": 1644, "2023": 1732, "2024": 1757 },
+        "full_time":         { "2022": 1624, "2023": 1674, "2024": 1669 },
+        "part_time":         { "2022": 20,   "2023": 58,   "2024": 88   },
+        "male":              { "2022": 1115, "2023": 1136, "2024": 1125 },
+        "female":            { "2022": 529,  "2023": 596,  "2024": 632  },
+        "female_ratio":      { "2022": 32.2, "2023": 34.4, "2024": 36.0 },
+        "female_manager":    { "2022": 15,   "2023": 16,   "2024": 18   },
+        "female_mgr_ratio":  { "2022": 10.0, "2023": 9.0,  "2024": 10.0 },
+        "voluntary_turnover":{ "2022": 0,    "2023": 23.4, "2024": 18.3 }
+      },
+      "safety": {
+        "accident_workers":  { "2022": 0, "2023": 1,    "2024": 2    },
+        "accident_rate":     { "2022": 0, "2023": 0.03, "2024": 0.07 },
+        "fatal_accidents":   { "2022": 0, "2023": 0,    "2024": 0    },
+        "safety_edu_hours":  { "2022": 41422, "2023": 49291, "2024": null },
+        "kcgs_safety_score": { "2024": 100.0 }
+      },
+      "training": {
+        "total_hours":      { "2022": 26298, "2023": 33820, "2024": 31315 },
+        "per_person_hours": { "2022": 7.5,   "2023": 10.9,  "2024": 7.0   },
+        "total_cost":       { "2022": 288,   "2023": 569,   "2024": 587   }
+      },
+      "social_contribution": {
+        "total_investment": { "2022": 2155.9, "2023": 2414.0, "2024": 2932.0 },
+        "volunteers":       { "2022": 43,     "2023": 19,     "2024": 0      }
+      },
+      "info_security": {
+        "it_security_ratio": { "2022": 13.11, "2023": 6.58, "2024": 7.18 },
+        "incidents":         { "2022": 0,     "2023": 0,    "2024": 0    }
+      }
+    }
+  },
     "daewoong": {
       "board": {
         "total_directors": 5, "inside_directors": 2, "outside_directors": 3,
@@ -354,7 +388,26 @@ const ESG_DATA = {
       ]}
     }
   },
-  "improvement_roadmap": {
+  "economic": {
+    "daewoong_pharma": {
+      "revenue_label":   "매출(연결)",
+      "revenue":         { "2022": 12800, "2023": 13750, "2024": 14230 },
+      "operating_profit":{ "2022": 960,   "2023": 1230,  "2024": 1480  },
+      "net_profit":      { "2022": 390,   "2023": 1200,  "2024": 230   },
+      "total_assets":    { "2022": 15630, "2023": 17700, "2024": 19770 },
+      "rd_investment":   { "2022": 2014,  "2023": 2066,  "2024": 2346  },
+      "rd_ratio":        { "2022": 17.3,  "2023": 16.9,  "2024": 18.5  }
+    },
+    "daewoong": {
+      "revenue_label":   "영업수익(연결)",
+      "revenue":         { "2022": 16970, "2023": 18140, "2024": 19370 },
+      "operating_profit":{ "2022": 2070,  "2023": 1960,  "2024": 2820  },
+      "net_profit":      { "2022": 1200,  "2023": 1910,  "2024": 690   },
+      "total_assets":    { "2022": 21590, "2023": 23590, "2024": 27210 },
+      "rd_investment":   { "2022": 2014,  "2023": 2066,  "2024": 2346  },
+      "rd_ratio":        { "2022": 17.3,  "2023": 16.9,  "2024": 18.5  }
+    }
+  },
     "E": [
       { "kcgs": "E001", "item": "이사회 기후변화 안건 등록",        "est": "+5~8점", "owner": "ESG팀→이사회" },
       { "kcgs": "E018", "item": "온실가스 연간 목표·실적 공개",      "est": "+3~5점", "owner": "공무팀" },
@@ -767,29 +820,38 @@ function renderEnv() {
 function renderSocial() {
   const d = ESG_DATA.kcgs_scores[currentCompany];
   const sub = d && d.S.sub ? d.S.sub : null;
+  const soc = ESG_DATA.social[currentCompany] || ESG_DATA.social['daewoong_pharma'];
 
-  // KPI 카드 (점수 기반)
-  const kpiDefs = [
-    { key: 'labor',        label: '노동관행' },
-    { key: 'safety',       label: '직장 내 안전보건' },
-    { key: 'human_rights', label: '인권' },
-    { key: 'fair_ops',     label: '공정운영관행' },
-    { key: 'info_security',label: '정보보호' },
-    { key: 'community',    label: '지역사회' },
-    { key: 'stakeholder',  label: '이해관계자 소통' }
+  // KPI 카드 — 실제 수치
+  const emp = soc.employees;
+  const saf = soc.safety;
+  const trn = soc.training;
+  const kpiItems = [
+    { label: '임직원 총인원', val: emp.total['2024'], unit: '명', sub: `전년 ${fmt(emp.total['2023'])}명` },
+    { label: '여성 임직원 비율', val: emp.female_ratio['2024'], unit: '%', sub: `여성 ${fmt(emp.female['2024'])}명` },
+    { label: '여성 관리자 수', val: emp.female_manager['2024'], unit: '명', sub: `비율 ${emp.female_mgr_ratio['2024']}%` },
+    { label: '자발적 이직률', val: emp.voluntary_turnover['2024'], unit: '%', sub: `전년 ${emp.voluntary_turnover['2023']}%` },
+    { label: '산업재해자 수', val: saf.accident_workers['2024'], unit: '명', sub: `재해율 ${saf.accident_rate['2024']}%` },
+    { label: '사망사고', val: saf.fatal_accidents['2024'], unit: '건', sub: '3개년 0건' },
+    { label: '총 교육 시간', val: trn.total_hours['2024'], unit: '시간', sub: `1인당 ${trn.per_person_hours['2024']}시간` },
+    { label: '교육 비용', val: trn.total_cost['2024'], unit: '백만원', sub: `전년 ${fmt(trn.total_cost['2023'])}백만원` }
   ];
-  document.getElementById('social-kpi').innerHTML = '';
+  document.getElementById('social-kpi').innerHTML = kpiItems.map(k =>
+    `<div class="card">
+      <div class="card-title">${k.label}</div>
+      <div class="kpi-value">${fmt(k.val)}<span class="kpi-unit">${k.unit}</span></div>
+      <div class="kpi-change neutral">${k.sub}</div>
+    </div>`
+  ).join('');
 
   if (sub) {
     makeChart('chart-s-sub', 'bar',
-      kpiDefs.map(k => k.label),
+      ['노동관행','안전보건','인권','공정운영','정보보호','지역사회','이해관계자'],
       [{
         label: 'S 세부 점수',
-        data: kpiDefs.map(k => sub[k.key] || 0),
-        backgroundColor: kpiDefs.map(k => {
-          const v = sub[k.key] || 0;
-          return v >= 80 ? '#2d6a4f' : v >= 50 ? '#b5740a' : '#c1121f';
-        }),
+        data: [sub.labor, sub.safety, sub.human_rights, sub.fair_ops, sub.info_security, sub.community, sub.stakeholder],
+        backgroundColor: [sub.labor, sub.safety, sub.human_rights, sub.fair_ops, sub.info_security, sub.community, sub.stakeholder].map(v =>
+          v >= 80 ? '#2d6a4f' : v >= 50 ? '#b5740a' : '#c1121f'),
         borderRadius: 4
       }],
       { plugins: { legend: { display: false } }, scales: { y: { max: 100 } } }
@@ -801,7 +863,8 @@ function renderSocial() {
     { label: '직장 내 안전보건', status: 'green', kcgs: 'S010', note: '100점 — 안전보건 거버넌스·위험관리 최고점' },
     { label: '이해관계자 소통',  status: 'green', kcgs: 'S029', note: '100점 — 비재무정보 제3자 검증 실시' },
     { label: '노동관행',         status: 'green', kcgs: 'S001', note: '93.1점 — 공정고용·노사관계 우수' },
-    { label: '정보보호·개인정보보호 정책', status: 'red',   kcgs: 'S022', note: '미공개 → 즉시 공개 가능' },
+    { label: '정보보호 투자 비율(2024)',  status: 'green', kcgs: 'S024', note: `${ESG_DATA.social.daewoong_pharma.info_security.it_security_ratio['2024']}% — KCGS 기준 7% 이상 충족` },
+    { label: '정보보호·개인정보보호 정책', status: 'red', kcgs: 'S022', note: '미공개 → 즉시 공개 가능' },
     { label: '인권경영 정책',    status: 'red',   kcgs: 'S014', note: '미공개 → 즉시 공개 가능' },
     { label: '지역사회 중장기 목표', status: 'red', kcgs: 'S026', note: '미공개 → 즉시 공개 가능' },
     { label: '공정운영관행',      status: 'amber', kcgs: 'S019', note: '50.0점 — 예방 활동 공개 필요' }
