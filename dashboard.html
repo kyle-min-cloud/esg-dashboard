@@ -1,0 +1,924 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>대웅그룹 ESG 통합 대시보드</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700&family=DM+Mono:wght@400;500&display=swap');
+
+  :root {
+    --bg:        #f4f4f0;
+    --surface:   #ffffff;
+    --border:    #e2e2da;
+    --text-1:    #1a1a18;
+    --text-2:    #5a5a54;
+    --text-3:    #9a9a92;
+    --green:     #2d6a4f;
+    --green-light:#d8f3dc;
+    --red:       #c1121f;
+    --red-light: #fce4e4;
+    --amber:     #b5740a;
+    --amber-light:#fff3cd;
+    --blue:      #1d4e89;
+    --blue-light:#dbeafe;
+    --accent:    #1a1a18;
+    --radius:    8px;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: 'Noto Sans KR', sans-serif;
+    background: var(--bg);
+    color: var(--text-1);
+    font-size: 14px;
+    line-height: 1.6;
+  }
+
+  /* ── 헤더 ── */
+  .header {
+    background: var(--accent);
+    color: #fff;
+    padding: 20px 32px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+  }
+  .header-left { display: flex; align-items: center; gap: 16px; }
+  .logo-badge {
+    background: #fff;
+    color: var(--accent);
+    font-family: 'DM Mono', monospace;
+    font-size: 11px;
+    font-weight: 500;
+    padding: 4px 10px;
+    border-radius: 4px;
+    letter-spacing: 0.05em;
+  }
+  .header-title { font-size: 15px; font-weight: 500; opacity: 0.9; }
+  .header-meta  { font-size: 12px; opacity: 0.5; font-family: 'DM Mono', monospace; }
+
+  /* ── 컨트롤 바 ── */
+  .controls {
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    padding: 12px 32px;
+    display: flex;
+    align-items: center;
+    gap: 24px;
+    flex-wrap: wrap;
+  }
+  .control-group { display: flex; align-items: center; gap: 8px; }
+  .control-label { font-size: 12px; color: var(--text-2); font-weight: 500; }
+  .seg-btn {
+    padding: 5px 14px;
+    border: 1px solid var(--border);
+    background: transparent;
+    border-radius: 20px;
+    font-size: 12px;
+    cursor: pointer;
+    font-family: 'Noto Sans KR', sans-serif;
+    transition: all 0.15s;
+    color: var(--text-2);
+  }
+  .seg-btn.active {
+    background: var(--accent);
+    color: #fff;
+    border-color: var(--accent);
+  }
+  .note-badge {
+    margin-left: auto;
+    font-size: 11px;
+    color: var(--text-3);
+    background: var(--bg);
+    padding: 4px 10px;
+    border-radius: 4px;
+    border: 1px solid var(--border);
+  }
+
+  /* ── 탭 네비 ── */
+  .tab-nav {
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    padding: 0 32px;
+    display: flex;
+    gap: 0;
+  }
+  .tab-btn {
+    padding: 14px 20px;
+    border: none;
+    background: transparent;
+    font-size: 13px;
+    font-family: 'Noto Sans KR', sans-serif;
+    font-weight: 500;
+    color: var(--text-2);
+    cursor: pointer;
+    border-bottom: 2px solid transparent;
+    transition: all 0.15s;
+  }
+  .tab-btn.active {
+    color: var(--accent);
+    border-bottom-color: var(--accent);
+  }
+
+  /* ── 메인 레이아웃 ── */
+  .main { padding: 28px 32px; max-width: 1200px; }
+  .tab-panel { display: none; }
+  .tab-panel.active { display: block; }
+
+  /* ── 그리드 ── */
+  .grid-4 { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; margin-bottom: 24px; }
+  .grid-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin-bottom: 24px; }
+  .grid-2 { display: grid; grid-template-columns: repeat(2, 1fr); gap: 16px; margin-bottom: 24px; }
+  @media (max-width: 900px) {
+    .grid-4 { grid-template-columns: repeat(2, 1fr); }
+    .grid-3 { grid-template-columns: repeat(2, 1fr); }
+    .grid-2 { grid-template-columns: 1fr; }
+    .main { padding: 16px; }
+    .header, .controls, .tab-nav { padding-left: 16px; padding-right: 16px; }
+  }
+
+  /* ── 카드 ── */
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 20px;
+  }
+  .card-title {
+    font-size: 11px;
+    font-weight: 500;
+    letter-spacing: 0.08em;
+    color: var(--text-2);
+    text-transform: uppercase;
+    margin-bottom: 12px;
+  }
+  .section-title {
+    font-size: 16px;
+    font-weight: 700;
+    margin-bottom: 16px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .section-title::before {
+    content: '';
+    display: block;
+    width: 4px;
+    height: 18px;
+    background: var(--accent);
+    border-radius: 2px;
+  }
+
+  /* ── KPI 숫자 카드 ── */
+  .kpi-value  { font-size: 28px; font-weight: 700; font-family: 'DM Mono', monospace; line-height: 1; }
+  .kpi-unit   { font-size: 12px; color: var(--text-2); margin-left: 4px; }
+  .kpi-change { font-size: 12px; margin-top: 6px; display: flex; align-items: center; gap: 4px; }
+  .up   { color: var(--red); }
+  .down { color: var(--green); }
+  .neutral { color: var(--text-3); }
+
+  /* ── 등급 배지 ── */
+  .grade-badge {
+    display: inline-block;
+    font-family: 'DM Mono', monospace;
+    font-size: 13px;
+    font-weight: 500;
+    padding: 3px 10px;
+    border-radius: 4px;
+    border: 1px solid;
+  }
+  .grade-ap  { background: #d1fae5; color: #065f46; border-color: #6ee7b7; }
+  .grade-a   { background: #dbeafe; color: #1e3a8a; border-color: #93c5fd; }
+  .grade-bp  { background: #ede9fe; color: #4c1d95; border-color: #c4b5fd; }
+  .grade-b   { background: #fef9c3; color: #78350f; border-color: #fde047; }
+  .grade-c   { background: #fee2e2; color: #991b1b; border-color: #fca5a5; }
+
+  /* ── KCGS 점수 게이지 ── */
+  .gauge-wrap { position: relative; text-align: center; }
+  .gauge-label { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -35%); }
+  .gauge-score { font-size: 22px; font-weight: 700; font-family: 'DM Mono', monospace; }
+  .gauge-max   { font-size: 11px; color: var(--text-2); }
+
+  /* ── 테이블 ── */
+  .data-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  .data-table th {
+    text-align: left;
+    padding: 8px 12px;
+    background: var(--bg);
+    font-size: 11px;
+    font-weight: 500;
+    letter-spacing: 0.05em;
+    color: var(--text-2);
+    border-bottom: 1px solid var(--border);
+  }
+  .data-table td {
+    padding: 10px 12px;
+    border-bottom: 1px solid var(--bg);
+    font-family: 'DM Mono', monospace;
+    font-size: 12px;
+  }
+  .data-table tr:last-child td { border-bottom: none; }
+  .data-table td:first-child { font-family: 'Noto Sans KR', sans-serif; font-size: 13px; color: var(--text-2); }
+  .trend-up   { color: var(--red); font-weight: 500; }
+  .trend-down { color: var(--green); font-weight: 500; }
+
+  /* ── 체크리스트 ── */
+  .checklist { list-style: none; display: flex; flex-direction: column; gap: 8px; }
+  .checklist li {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    padding: 10px 12px;
+    border-radius: 6px;
+    font-size: 13px;
+    background: var(--bg);
+  }
+  .check-icon { font-size: 14px; flex-shrink: 0; margin-top: 1px; }
+  .check-meta { font-size: 11px; color: var(--text-3); font-family: 'DM Mono', monospace; margin-top: 2px; }
+  .red-item   { background: var(--red-light); }
+  .green-item { background: var(--green-light); }
+  .amber-item { background: var(--amber-light); }
+
+  /* ── 개선 로드맵 ── */
+  .roadmap-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 10px 14px;
+    border-radius: 6px;
+    border: 1px solid var(--border);
+    margin-bottom: 8px;
+    background: var(--surface);
+    font-size: 13px;
+  }
+  .roadmap-code { font-family: 'DM Mono', monospace; font-size: 11px; color: var(--text-3); min-width: 36px; }
+  .roadmap-est  { margin-left: auto; font-size: 12px; color: var(--green); font-weight: 500; white-space: nowrap; }
+  .roadmap-owner{ font-size: 11px; color: var(--text-2); }
+
+  /* ── 페널티 카드 ── */
+  .penalty-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 8px 0;
+    border-bottom: 1px solid var(--bg);
+    font-size: 13px;
+  }
+  .penalty-row:last-child { border-bottom: none; }
+  .penalty-score { font-family: 'DM Mono', monospace; color: var(--red); font-weight: 500; }
+
+  canvas { max-height: 220px; }
+</style>
+</head>
+<body>
+
+<!-- ── 데이터 내장 ── -->
+<script>
+const ESG_DATA = {
+  "meta": { "last_updated": "2026-03-31", "updated_by": "경호", "version": "1.0" },
+  "companies": {
+    "daewoong":        { "name_ko": "㈜대웅",     "ticker": "003090", "type": "지주" },
+    "daewoong_pharma": { "name_ko": "㈜대웅제약",  "ticker": "069620", "type": "사업" },
+    "daewoong_bio":    { "name_ko": "㈜대웅바이오", "ticker": null,     "type": "자회사" }
+  },
+  "kcgs_scores": {
+    "daewoong": {
+      "integrated": { "grade": "B", "change": -1 },
+      "E": { "grade": "A",  "score": 61.8, "change": 1,  "industry_max": 85.8 },
+      "S": { "grade": "A+", "score": 73.9, "change": 1,  "industry_max": 92.2 },
+      "G": { "grade": "C",  "score": 18.4, "change": -1, "industry_max": 70.5,
+             "sub": { "board_leadership": 20.8, "shareholder_rights": 34.5, "audit": 44.8, "stakeholder": 100.0 } }
+    },
+    "daewoong_pharma": {
+      "integrated": { "grade": "A", "change": 2 },
+      "E": { "grade": "A",  "score": 61.8, "change": 1,  "industry_max": 80.9,
+             "sub": { "leadership_governance": 55.9, "risk_management": 83.3, "operations": 58.8, "stakeholder": 75.0 } },
+      "S": { "grade": "A+", "score": 73.9, "change": 1,  "industry_max": 92.2,
+             "sub": { "labor": 93.1, "safety": 100.0, "human_rights": 60.9, "fair_ops": 50.0, "info_security": 71.4, "community": 47.1, "stakeholder": 100.0 } },
+      "G": { "grade": "B+", "score": 32.7, "change": 2,  "industry_max": 70.5,
+             "sub": { "board_leadership": 23.4, "shareholder_rights": 49.1, "audit": 46.3, "stakeholder": 100.0 } }
+    }
+  },
+  "environment": {
+    "daewoong_pharma": {
+      "ghg": {
+        "scope1":       { "2022": 10131, "2023": 10184, "2024": 11534, "unit": "tCO2eq" },
+        "scope2":       { "2022": 24510, "2023": 24522, "2024": 30903, "unit": "tCO2eq" },
+        "scope1_2_sum": { "2022": 34641, "2023": 34706, "2024": 42437, "unit": "tCO2eq" }
+      },
+      "energy": {
+        "total":     { "2022": 750.1, "2023": 761.9, "2024": 864.4, "unit": "TJ" },
+        "renewable": { "2022": 0,     "2023": 0,     "2024": 0,     "unit": "TJ" }
+      },
+      "waste": {
+        "total":   { "2022": 1129, "2023": 1159, "2024": 985,  "unit": "ton" },
+        "recycled":{ "2022": 501,  "2023": 523,  "2024": 501,  "unit": "ton" }
+      },
+      "water": {
+        "total": { "2022": 310596, "2023": 343083, "2024": 400298, "unit": "ton" },
+        "reused":{ "2022": 38960,  "2023": 40960,  "2024": 40960,  "unit": "ton" }
+      }
+    }
+  },
+  "governance": {
+    "daewoong": {
+      "board": {
+        "total_directors": 5, "inside_directors": 2, "outside_directors": 3,
+        "female_directors": 0, "board_meetings": 5,
+        "ceo_chair_separation": false, "audit_committee": false,
+        "remuneration_committee": false, "nomination_committee": false
+      },
+      "penalty": { "total": -16.8, "items": [
+        { "desc": "자기주식 29.27% 과다 보유", "score": -8.4 },
+        { "desc": "감사 독립성 훼손 우려", "score": -4.2 },
+        { "desc": "윤재승 미등기임원 경영영향력 행사", "score": -4.2 }
+      ]}
+    },
+    "daewoong_pharma": {
+      "board": {
+        "total_directors": 6, "inside_directors": 3, "outside_directors": 3,
+        "female_directors": 1, "board_meetings": 9,
+        "ceo_chair_separation": false, "audit_committee": false,
+        "remuneration_committee": false, "nomination_committee": false
+      },
+      "penalty": { "total": -7.8, "items": [
+        { "desc": "이사 불성실 참여 (9회 중 2회 불참)", "score": -2.6 },
+        { "desc": "지원성 매입거래 254억원", "score": -2.6 },
+        { "desc": "윤재승 미등기임원 경영영향력 행사", "score": -2.6 }
+      ]}
+    }
+  },
+  "improvement_roadmap": {
+    "E": [
+      { "kcgs": "E001", "item": "이사회 기후변화 안건 등록",        "est": "+5~8점", "owner": "ESG팀→이사회" },
+      { "kcgs": "E018", "item": "온실가스 연간 목표·실적 공개",      "est": "+3~5점", "owner": "공무팀" },
+      { "kcgs": "E025", "item": "에너지 연간 목표·실적 공개",        "est": "+3~5점", "owner": "공무팀" },
+      { "kcgs": "E054", "item": "공급망 환경 리스크 평가 제도 수립", "est": "+5~8점", "owner": "ESG팀·구매팀" },
+      { "kcgs": "E060", "item": "환경 이니셔티브 참여 공개",         "est": "+3~5점", "owner": "ESG팀" }
+    ],
+    "S": [
+      { "kcgs": "S014", "item": "인권경영 정책 공개",        "est": "+3~5점", "owner": "ESG팀·법무팀" },
+      { "kcgs": "S022", "item": "정보보호 정책 공개",         "est": "+3~5점", "owner": "IT팀·법무팀" },
+      { "kcgs": "S026", "item": "지역사회 중장기 목표 공개",  "est": "+3~5점", "owner": "ESG팀" }
+    ],
+    "G": [
+      { "kcgs": "G031", "item": "전체 사내이사 개인 보수 공시",      "est": "+5~8점", "owner": "IR팀" },
+      { "kcgs": "G041", "item": "배당절차 개선 (확정일 선행)",        "est": "+5~8점", "owner": "IR팀·이사회" },
+      { "kcgs": "G042", "item": "중장기 배당정책 공개",               "est": "+5~8점", "owner": "IR팀" },
+      { "kcgs": "G060", "item": "이사회 ESG 중대성 검토",             "est": "+5~8점", "owner": "ESG팀→이사회" },
+      { "kcgs": "G066", "item": "준법통제기준 점검현황 공시",         "est": "+5~8점", "owner": "법무팀" }
+    ]
+  }
+};
+</script>
+
+<!-- ── 헤더 ── -->
+<header class="header">
+  <div class="header-left">
+    <span class="logo-badge">DAEWOONG GROUP</span>
+    <span class="header-title">ESG 통합 대시보드</span>
+  </div>
+  <span class="header-meta">기준: KCGS 2025년 평가 · 데이터 갱신: <span id="last-updated"></span></span>
+</header>
+
+<!-- ── 컨트롤 ── -->
+<div class="controls">
+  <div class="control-group">
+    <span class="control-label">법인</span>
+    <button class="seg-btn active" data-company="daewoong_pharma" onclick="setCompany(this)">㈜대웅제약</button>
+    <button class="seg-btn" data-company="daewoong" onclick="setCompany(this)">㈜대웅</button>
+  </div>
+  <div class="control-group">
+    <span class="control-label">탭</span>
+    <button class="seg-btn active" onclick="showTab('overview', this)">종합</button>
+    <button class="seg-btn" onclick="showTab('env', this)">환경 E</button>
+    <button class="seg-btn" onclick="showTab('social', this)">사회 S</button>
+    <button class="seg-btn" onclick="showTab('gov', this)">지배구조 G</button>
+    <button class="seg-btn" onclick="showTab('roadmap', this)">개선 로드맵</button>
+  </div>
+  <span class="note-badge">※ KCGS 점수는 2025년 평가 기준 참조값</span>
+</div>
+
+<!-- ── 메인 ── -->
+<div class="main">
+
+  <!-- ══ 종합 탭 ══ -->
+  <div class="tab-panel active" id="tab-overview">
+    <div class="section-title">KCGS 2025년 평가 결과</div>
+
+    <!-- ESG 등급 카드 -->
+    <div class="grid-4" id="overview-grades"></div>
+
+    <!-- E / S / G 점수 게이지 -->
+    <div class="grid-3" id="overview-gauges"></div>
+
+    <!-- E/G 세부 점수 -->
+    <div class="grid-2">
+      <div class="card">
+        <div class="card-title">환경(E) 대분류별 점수</div>
+        <canvas id="chart-e-sub"></canvas>
+      </div>
+      <div class="card">
+        <div class="card-title">지배구조(G) 대분류별 점수</div>
+        <canvas id="chart-g-sub"></canvas>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══ 환경 탭 ══ -->
+  <div class="tab-panel" id="tab-env">
+    <div class="section-title">환경(E) 주요 지표</div>
+
+    <div class="grid-2">
+      <div class="card">
+        <div class="card-title">온실가스 배출량 3개년 추이 (tCO2eq)</div>
+        <canvas id="chart-ghg"></canvas>
+      </div>
+      <div class="card">
+        <div class="card-title">에너지 사용량 3개년 추이 (TJ)</div>
+        <canvas id="chart-energy"></canvas>
+      </div>
+    </div>
+
+    <div class="grid-2">
+      <div class="card">
+        <div class="card-title">폐기물 발생량 / 재활용량 (ton)</div>
+        <canvas id="chart-waste"></canvas>
+      </div>
+      <div class="card">
+        <div class="card-title">용수 사용량 / 재이용량 (ton)</div>
+        <canvas id="chart-water"></canvas>
+      </div>
+    </div>
+
+    <!-- 증감률 테이블 -->
+    <div class="card">
+      <div class="card-title">전년 대비 증감률 (2023→2024)</div>
+      <table class="data-table" id="env-change-table"></table>
+    </div>
+
+    <!-- KCGS 환경 개선 항목 -->
+    <div class="card" style="margin-top:16px">
+      <div class="card-title">KCGS 환경 평가 현황 (대웅제약 기준)</div>
+      <ul class="checklist" id="env-checklist"></ul>
+    </div>
+  </div>
+
+  <!-- ══ 사회 탭 ══ -->
+  <div class="tab-panel" id="tab-social">
+    <div class="section-title">사회(S) 주요 지표</div>
+
+    <div class="grid-4" id="social-kpi"></div>
+
+    <div class="card">
+      <div class="card-title">사회(S) 대분류별 점수 — 대웅제약 기준</div>
+      <canvas id="chart-s-sub" style="max-height:260px"></canvas>
+    </div>
+
+    <div class="card" style="margin-top:16px">
+      <div class="card-title">KCGS 사회 평가 현황</div>
+      <ul class="checklist" id="social-checklist"></ul>
+    </div>
+  </div>
+
+  <!-- ══ 지배구조 탭 ══ -->
+  <div class="tab-panel" id="tab-gov">
+    <div class="section-title">지배구조(G) 현황</div>
+
+    <div class="grid-2">
+      <div class="card" id="gov-board-card"></div>
+      <div class="card" id="gov-penalty-card"></div>
+    </div>
+
+    <div class="card" style="margin-top:0">
+      <div class="card-title">KCGS 지배구조 핵심 항목 현황</div>
+      <ul class="checklist" id="gov-checklist"></ul>
+    </div>
+  </div>
+
+  <!-- ══ 개선 로드맵 탭 ══ -->
+  <div class="tab-panel" id="tab-roadmap">
+    <div class="section-title">즉시 개선 가능 항목 — 공시·절차 변경만으로 점수 상승</div>
+
+    <div class="grid-3">
+      <div class="card">
+        <div class="card-title">🌱 환경(E) 개선 항목</div>
+        <div id="roadmap-e"></div>
+      </div>
+      <div class="card">
+        <div class="card-title">🤝 사회(S) 개선 항목</div>
+        <div id="roadmap-s"></div>
+      </div>
+      <div class="card">
+        <div class="card-title">🏛 지배구조(G) 개선 항목</div>
+        <div id="roadmap-g"></div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">참고사항</div>
+      <p style="font-size:13px;color:var(--text-2);line-height:1.8">
+        위 점수 추정치는 KCGS 평가 모형 기반의 내부 추정값이며, 실제 평가 결과와 다를 수 있습니다.<br>
+        이사회 관련 구조 개선(대표이사·의장 분리, 사추위·보상위 설치)은 이사회 결의가 필요하며 별도 검토가 필요합니다.<br>
+        ★ 표시 항목(공시·정책 수립)은 실무진 주도로 즉시 추진 가능합니다.
+      </p>
+    </div>
+  </div>
+
+</div><!-- /main -->
+
+<script>
+// ── 전역 상태 ──
+let currentCompany = 'daewoong_pharma';
+const YEARS = ['2022','2023','2024'];
+const chartInstances = {};
+
+// ── 유틸 ──
+function fmt(n, dec=0) {
+  if (n === null || n === undefined || n === 0) return '—';
+  return Number(n).toLocaleString('ko-KR', { maximumFractionDigits: dec });
+}
+function pct(a, b) {
+  if (!a || !b) return null;
+  return ((b - a) / a * 100).toFixed(1);
+}
+function gradeClass(g) {
+  if (g === 'A+') return 'grade-ap';
+  if (g === 'A')  return 'grade-a';
+  if (g === 'B+') return 'grade-bp';
+  if (g === 'B')  return 'grade-b';
+  return 'grade-c';
+}
+function makeChart(id, type, labels, datasets, opts={}) {
+  if (chartInstances[id]) chartInstances[id].destroy();
+  const ctx = document.getElementById(id);
+  if (!ctx) return;
+  chartInstances[id] = new Chart(ctx, {
+    type,
+    data: { labels, datasets },
+    options: {
+      responsive: true,
+      plugins: { legend: { labels: { font: { family: 'Noto Sans KR', size: 11 }, boxWidth: 12 } } },
+      scales: type === 'bar' || type === 'line' ? {
+        x: { ticks: { font: { family: 'DM Mono', size: 11 } } },
+        y: { ticks: { font: { family: 'DM Mono', size: 11 } } }
+      } : {},
+      ...opts
+    }
+  });
+}
+
+// ── 법인 전환 ──
+function setCompany(btn) {
+  document.querySelectorAll('[data-company]').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  currentCompany = btn.dataset.company;
+  renderAll();
+}
+
+// ── 탭 전환 ──
+function showTab(name, btn) {
+  document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.controls .seg-btn:not([data-company])').forEach(b => b.classList.remove('active'));
+  document.getElementById('tab-' + name).classList.add('active');
+  btn.classList.add('active');
+  renderAll();
+}
+
+// ── 종합 탭 렌더 ──
+function renderOverview() {
+  const d = ESG_DATA.kcgs_scores[currentCompany];
+  if (!d) return;
+
+  // 등급 카드
+  const grades = document.getElementById('overview-grades');
+  const domains = [
+    { key: 'integrated', label: 'ESG 통합', score: null },
+    { key: 'E', label: '환경 (E)' },
+    { key: 'S', label: '사회 (S)' },
+    { key: 'G', label: '지배구조 (G)' }
+  ];
+  grades.innerHTML = domains.map(dom => {
+    const v = d[dom.key];
+    const chg = v.change > 0 ? `<span class="up">▲${v.change}</span>` :
+                v.change < 0 ? `<span class="down">▼${Math.abs(v.change)}</span>` : '';
+    const scoreHtml = v.score ? `<div style="font-size:12px;color:var(--text-2);margin-top:4px">점수: <span style="font-family:'DM Mono'">${v.score}점</span></div>` : '';
+    return `<div class="card">
+      <div class="card-title">${dom.label}</div>
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:4px">
+        <span class="grade-badge ${gradeClass(v.grade)}">${v.grade}</span>
+        <span style="font-size:12px">${chg} 전년대비</span>
+      </div>
+      ${scoreHtml}
+    </div>`;
+  }).join('');
+
+  // 게이지 (도넛 차트)
+  const gEl = document.getElementById('overview-gauges');
+  gEl.innerHTML = ['E','S','G'].map(k => {
+    const v = d[k];
+    return `<div class="card">
+      <div class="card-title">${k === 'E' ? '환경' : k === 'S' ? '사회' : '지배구조'} (${k}) 점수</div>
+      <div class="gauge-wrap" style="height:160px;display:flex;align-items:center;justify-content:center;position:relative">
+        <canvas id="gauge-${k}" width="160" height="160" style="max-height:160px;max-width:160px"></canvas>
+        <div class="gauge-label">
+          <div class="gauge-score">${v.score}</div>
+          <div class="gauge-max">/ 100</div>
+          <div style="margin-top:4px"><span class="grade-badge ${gradeClass(v.grade)}">${v.grade}</span></div>
+        </div>
+      </div>
+      <div style="font-size:11px;color:var(--text-3);text-align:center;margin-top:6px">업종 최고: ${v.industry_max}점</div>
+    </div>`;
+  }).join('');
+
+  ['E','S','G'].forEach(k => {
+    const v = d[k];
+    makeChart('gauge-'+k, 'doughnut',
+      ['점수','잔여'],
+      [{
+        data: [v.score, 100 - v.score],
+        backgroundColor: ['#1a1a18','#f0f0ec'],
+        borderWidth: 0,
+        cutout: '70%'
+      }],
+      { plugins: { legend: { display: false } }, animation: { duration: 600 } }
+    );
+  });
+
+  // E 세부
+  if (d.E.sub) {
+    const sub = d.E.sub;
+    const labels = { leadership_governance:'리더십·거버넌스', risk_management:'위험관리', operations:'운영·성과', stakeholder:'이해관계자 소통' };
+    makeChart('chart-e-sub', 'bar',
+      Object.keys(sub).map(k => labels[k] || k),
+      [{
+        label: '점수',
+        data: Object.values(sub),
+        backgroundColor: Object.values(sub).map(v => v >= 70 ? '#2d6a4f' : v >= 50 ? '#b5740a' : '#c1121f'),
+        borderRadius: 4
+      }],
+      { plugins: { legend: { display: false } }, scales: { y: { max: 100 } } }
+    );
+  }
+
+  // G 세부
+  if (d.G.sub) {
+    const sub = d.G.sub;
+    const labels = { board_leadership:'이사회 리더십', shareholder_rights:'주주권 보호', audit:'감사', stakeholder:'이해관계자 소통' };
+    makeChart('chart-g-sub', 'bar',
+      Object.keys(sub).map(k => labels[k] || k),
+      [{
+        label: '점수',
+        data: Object.values(sub),
+        backgroundColor: Object.values(sub).map(v => v >= 70 ? '#2d6a4f' : v >= 40 ? '#b5740a' : '#c1121f'),
+        borderRadius: 4
+      }],
+      { plugins: { legend: { display: false } }, scales: { y: { max: 100 } } }
+    );
+  }
+}
+
+// ── 환경 탭 렌더 ──
+function renderEnv() {
+  const co = currentCompany === 'daewoong' ? 'daewoong_pharma' : currentCompany;
+  const env = ESG_DATA.environment[co];
+  if (!env) { document.getElementById('tab-env').innerHTML = '<div class="card" style="padding:32px;text-align:center;color:var(--text-2)">대웅(지주)의 환경 데이터는 대웅제약 기준으로 산출됩니다.</div>'; return; }
+
+  const ghg = env.ghg;
+  makeChart('chart-ghg', 'bar', YEARS, [
+    { label: 'Scope1 (직접)', data: YEARS.map(y => ghg.scope1[y]), backgroundColor: '#c1121f', borderRadius: 3 },
+    { label: 'Scope2 (간접)', data: YEARS.map(y => ghg.scope2[y]), backgroundColor: '#fca5a5', borderRadius: 3 }
+  ]);
+
+  makeChart('chart-energy', 'line', YEARS, [{
+    label: '총 에너지 사용량 (TJ)',
+    data: YEARS.map(y => env.energy.total[y]),
+    borderColor: '#b5740a', backgroundColor: '#fff3cd44',
+    fill: true, tension: 0.3, pointRadius: 5
+  }]);
+
+  makeChart('chart-waste', 'bar', YEARS, [
+    { label: '발생량', data: YEARS.map(y => env.waste.total[y]),   backgroundColor: '#1a1a18', borderRadius: 3 },
+    { label: '재활용', data: YEARS.map(y => env.waste.recycled[y]),backgroundColor: '#2d6a4f', borderRadius: 3 }
+  ]);
+
+  makeChart('chart-water', 'bar', YEARS, [
+    { label: '사용량', data: YEARS.map(y => env.water.total[y]),  backgroundColor: '#1d4e89', borderRadius: 3 },
+    { label: '재이용', data: YEARS.map(y => env.water.reused[y]), backgroundColor: '#93c5fd', borderRadius: 3 }
+  ]);
+
+  // 증감률 테이블
+  const rows = [
+    { name: '온실가스 Scope1+2', a: ghg.scope1_2_sum['2023'], b: ghg.scope1_2_sum['2024'], unit: 'tCO2eq', up_is_bad: true },
+    { name: '에너지 사용량', a: env.energy.total['2023'], b: env.energy.total['2024'], unit: 'TJ', up_is_bad: true },
+    { name: '폐기물 발생량', a: env.waste.total['2023'],  b: env.waste.total['2024'],  unit: 'ton', up_is_bad: true },
+    { name: '용수 사용량',   a: env.water.total['2023'],  b: env.water.total['2024'],  unit: 'ton', up_is_bad: true },
+    { name: '폐기물 재활용량', a: env.waste.recycled['2023'], b: env.waste.recycled['2024'], unit: 'ton', up_is_bad: false }
+  ];
+  document.getElementById('env-change-table').innerHTML = `
+    <thead><tr>
+      <th>항목</th><th>2023</th><th>2024</th><th>증감률</th><th>단위</th>
+    </tr></thead>
+    <tbody>${rows.map(r => {
+      const chg = pct(r.a, r.b);
+      const cls = chg === null ? '' : (parseFloat(chg) > 0) === r.up_is_bad ? 'trend-up' : 'trend-down';
+      const arrow = chg === null ? '' : parseFloat(chg) > 0 ? '▲' : '▼';
+      return `<tr>
+        <td>${r.name}</td>
+        <td>${fmt(r.a)}</td>
+        <td>${fmt(r.b)}</td>
+        <td class="${cls}">${chg !== null ? arrow + Math.abs(chg) + '%' : '—'}</td>
+        <td>${r.unit}</td>
+      </tr>`;
+    }).join('')}</tbody>`;
+
+  // 환경 체크리스트
+  const items = [
+    { label: '이사회 기후변화 이슈 관리', status: 'red',   kcgs: 'E001', note: '없음 → 이사회 안건 등록 필요' },
+    { label: '기후변화 중장기 목표·전략 공개', status: 'green', kcgs: 'E007', note: '중장기 목표·세부전략 모두 공개' },
+    { label: '온실가스 3개년 추이', status: 'red',   kcgs: 'E022', note: '22→23→24 증가 추세 (KCGS 감점)' },
+    { label: '에너지 사용량 3개년 추이', status: 'red',   kcgs: 'E028', note: '750→762→864 TJ 증가 추세 (KCGS 감점)' },
+    { label: '폐기물 발생량 3개년 추이', status: 'amber', kcgs: 'E036', note: '2개년 연속 개선 (1159→985)' },
+    { label: '재활용 실적 개선',          status: 'green', kcgs: 'E038', note: '전년 대비 재활용 실적 개선' },
+    { label: '용수 사용량 3개년 추이',     status: 'red',   kcgs: 'E043', note: '310,596→343,083→400,298 ton 증가 (KCGS 감점)' },
+    { label: '용수 재이용 실적',           status: 'green', kcgs: 'E045', note: '전년 대비 재이용 실적 개선' },
+    { label: '공급망 환경 리스크 관리',     status: 'red',   kcgs: 'E054', note: '없음 → 제도 수립 필요' },
+    { label: '환경 이니셔티브 참여 공개',   status: 'red',   kcgs: 'E060', note: '없음 → 즉시 공개 가능' }
+  ];
+  const icons = { green: '✅', amber: '🟡', red: '🔴' };
+  document.getElementById('env-checklist').innerHTML = items.map(item =>
+    `<li class="${item.status}-item">
+      <span class="check-icon">${icons[item.status]}</span>
+      <div>
+        <div>${item.label}</div>
+        <div class="check-meta">[${item.kcgs}] ${item.note}</div>
+      </div>
+    </li>`
+  ).join('');
+}
+
+// ── 사회 탭 렌더 ──
+function renderSocial() {
+  const d = ESG_DATA.kcgs_scores[currentCompany];
+  const sub = d && d.S.sub ? d.S.sub : null;
+
+  // KPI 카드 (점수 기반)
+  const kpiDefs = [
+    { key: 'labor',        label: '노동관행' },
+    { key: 'safety',       label: '직장 내 안전보건' },
+    { key: 'human_rights', label: '인권' },
+    { key: 'fair_ops',     label: '공정운영관행' },
+    { key: 'info_security',label: '정보보호' },
+    { key: 'community',    label: '지역사회' },
+    { key: 'stakeholder',  label: '이해관계자 소통' }
+  ];
+  document.getElementById('social-kpi').innerHTML = '';
+
+  if (sub) {
+    makeChart('chart-s-sub', 'bar',
+      kpiDefs.map(k => k.label),
+      [{
+        label: 'S 세부 점수',
+        data: kpiDefs.map(k => sub[k.key] || 0),
+        backgroundColor: kpiDefs.map(k => {
+          const v = sub[k.key] || 0;
+          return v >= 80 ? '#2d6a4f' : v >= 50 ? '#b5740a' : '#c1121f';
+        }),
+        borderRadius: 4
+      }],
+      { plugins: { legend: { display: false } }, scales: { y: { max: 100 } } }
+    );
+  }
+
+  // 사회 체크리스트
+  const items = [
+    { label: '직장 내 안전보건', status: 'green', kcgs: 'S010', note: '100점 — 안전보건 거버넌스·위험관리 최고점' },
+    { label: '이해관계자 소통',  status: 'green', kcgs: 'S029', note: '100점 — 비재무정보 제3자 검증 실시' },
+    { label: '노동관행',         status: 'green', kcgs: 'S001', note: '93.1점 — 공정고용·노사관계 우수' },
+    { label: '정보보호·개인정보보호 정책', status: 'red',   kcgs: 'S022', note: '미공개 → 즉시 공개 가능' },
+    { label: '인권경영 정책',    status: 'red',   kcgs: 'S014', note: '미공개 → 즉시 공개 가능' },
+    { label: '지역사회 중장기 목표', status: 'red', kcgs: 'S026', note: '미공개 → 즉시 공개 가능' },
+    { label: '공정운영관행',      status: 'amber', kcgs: 'S019', note: '50.0점 — 예방 활동 공개 필요' }
+  ];
+  const icons = { green: '✅', amber: '🟡', red: '🔴' };
+  document.getElementById('social-checklist').innerHTML = items.map(item =>
+    `<li class="${item.status}-item">
+      <span class="check-icon">${icons[item.status]}</span>
+      <div>
+        <div>${item.label}</div>
+        <div class="check-meta">[${item.kcgs}] ${item.note}</div>
+      </div>
+    </li>`
+  ).join('');
+}
+
+// ── 지배구조 탭 렌더 ──
+function renderGov() {
+  const gData = ESG_DATA.governance[currentCompany];
+  const kData = ESG_DATA.kcgs_scores[currentCompany];
+  if (!gData) return;
+
+  const board = gData.board;
+  const yn = v => v ? '<span style="color:var(--green);font-weight:500">✅ 실시</span>' : '<span style="color:var(--red)">🔴 미실시</span>';
+
+  document.getElementById('gov-board-card').innerHTML = `
+    <div class="card-title">이사회 구성 현황 (2024년)</div>
+    <table class="data-table">
+      <tbody>
+        <tr><td>전체 이사 수</td><td>${board.total_directors}명</td></tr>
+        <tr><td>사내이사</td><td>${board.inside_directors}명</td></tr>
+        <tr><td>사외이사</td><td>${board.outside_directors}명</td></tr>
+        <tr><td>여성 등기임원</td><td>${board.female_directors}명</td></tr>
+        <tr><td>이사회 개최 횟수</td><td>${board.board_meetings}회</td></tr>
+        <tr><td>대표이사·의장 분리</td><td>${yn(board.ceo_chair_separation)}</td></tr>
+        <tr><td>사외이사후보추천위원회</td><td>${yn(board.nomination_committee)}</td></tr>
+        <tr><td>보상위원회</td><td>${yn(board.remuneration_committee)}</td></tr>
+        <tr><td>감사위원회</td><td>${yn(board.audit_committee)}</td></tr>
+      </tbody>
+    </table>`;
+
+  const penalty = gData.penalty;
+  document.getElementById('gov-penalty-card').innerHTML = `
+    <div class="card-title">심화 평가 감점 항목 (기본점수 → 최종점수)</div>
+    <div style="display:flex;align-items:baseline;gap:12px;margin-bottom:16px">
+      <div><div style="font-size:11px;color:var(--text-2)">기본 점수</div>
+           <div style="font-family:'DM Mono';font-size:22px;font-weight:700">${kData.G.basic_score || kData.G.score}</div></div>
+      <div style="font-size:18px;color:var(--text-2)">−</div>
+      <div><div style="font-size:11px;color:var(--text-2)">심화 감점</div>
+           <div style="font-family:'DM Mono';font-size:22px;font-weight:700;color:var(--red)">${Math.abs(penalty.total)}</div></div>
+      <div style="font-size:18px;color:var(--text-2)">=</div>
+      <div><div style="font-size:11px;color:var(--text-2)">최종 점수</div>
+           <div style="font-family:'DM Mono';font-size:22px;font-weight:700;color:var(--blue)">${kData.G.score}</div></div>
+    </div>
+    ${penalty.items.map(item => `
+      <div class="penalty-row">
+        <span>${item.desc}</span>
+        <span class="penalty-score">-${Math.abs(item.score)}</span>
+      </div>`).join('')}`;
+
+  // 지배구조 체크리스트
+  const items = [
+    { label: '이사회 의장·대표이사 분리',    status: 'red',   kcgs: 'G004', note: '미분리. 분리 시 +10~15점 예상 (이사회 결의 필요)' },
+    { label: '사외이사후보추천위원회 설치',    status: 'red',   kcgs: 'G023', note: '미설치. 설치 시 +8~12점 예상 (이사회 결의 필요)' },
+    { label: '보상위원회 설치',              status: 'red',   kcgs: 'G018', note: '미설치. 설치 시 +8~12점 예상 (이사회 결의 필요)' },
+    { label: '중장기 배당정책 공개',          status: 'red',   kcgs: 'G042', note: '미공개 → 즉시 공개 가능 (+5~8점)' },
+    { label: '전체 사내이사 개인 보수 공시',  status: 'red',   kcgs: 'G031', note: '미공시 → 즉시 공시 가능 (+5~8점)' },
+    { label: '이사회 ESG 중대성 검토',       status: 'red',   kcgs: 'G060', note: '미검토 → 이사회 안건 등록으로 해결 (+5~8점)' },
+    { label: '준법통제기준 점검현황 공시',    status: 'red',   kcgs: 'G066', note: '미공시 → 즉시 공시 가능 (+5~8점)' },
+    { label: '전자투표제 실시',              status: 'green', kcgs: 'G038', note: '실시 중 ✅' },
+    { label: '이해관계자 소통 (정보공개)',    status: 'green', kcgs: 'G070', note: '100점 — 의결권 현황 등 전항목 공개 ✅' }
+  ];
+  const icons = { green: '✅', amber: '🟡', red: '🔴' };
+  document.getElementById('gov-checklist').innerHTML = items.map(item =>
+    `<li class="${item.status}-item">
+      <span class="check-icon">${icons[item.status]}</span>
+      <div>
+        <div>${item.label}</div>
+        <div class="check-meta">[${item.kcgs}] ${item.note}</div>
+      </div>
+    </li>`
+  ).join('');
+}
+
+// ── 개선 로드맵 렌더 ──
+function renderRoadmap() {
+  ['E','S','G'].forEach(domain => {
+    const items = ESG_DATA.improvement_roadmap[domain];
+    document.getElementById('roadmap-' + domain.toLowerCase()).innerHTML =
+      items.map(item => `
+        <div class="roadmap-item">
+          <span class="roadmap-code">${item.kcgs}</span>
+          <div style="flex:1">
+            <div>${item.item}</div>
+            <div class="roadmap-owner">${item.owner}</div>
+          </div>
+          <span class="roadmap-est">${item.est}</span>
+        </div>`
+      ).join('');
+  });
+}
+
+// ── 전체 렌더 ──
+function renderAll() {
+  const activeTab = document.querySelector('.tab-panel.active');
+  if (!activeTab) return;
+  const id = activeTab.id.replace('tab-', '');
+  if (id === 'overview') renderOverview();
+  else if (id === 'env')  renderEnv();
+  else if (id === 'social') renderSocial();
+  else if (id === 'gov')  renderGov();
+  else if (id === 'roadmap') renderRoadmap();
+}
+
+// ── 초기화 ──
+document.getElementById('last-updated').textContent = ESG_DATA.meta.last_updated;
+renderAll();
+</script>
+</body>
+</html>
