@@ -280,7 +280,10 @@
       <textarea id="note-input" placeholder="데이터 관련 특이사항이 있으면 입력해 주세요 (예: 나보타 신공장 증설로 인한 온실가스 증가 등)"></textarea>
     </div>
 
-    <button class="btn-primary" id="btn-step2" onclick="submitData()">제출하기</button>
+    <!-- 세부 항목 폼 (영역 선택 후 표시) -->
+    <div id="detail-form-container" style="display:none"></div>
+
+    <button class="btn-primary" id="btn-step2" onclick="submitData()" disabled>제출하기</button>
   </div>
 
   <!-- ── STEP 3: 완료 ── -->
@@ -410,52 +413,252 @@ function selectDomain(deptId) {
   selectedDomain = deptId;
   document.querySelectorAll(".domain-card").forEach(c => c.classList.remove("selected"));
   event.currentTarget.classList.add("selected");
+
+  // 세부 항목 폼 렌더
+  const formContainer = document.getElementById("detail-form-container");
+  if (formContainer) {
+    const schema = FORM_SCHEMA[deptId];
+    if (schema && schema.sections.length) {
+      formValues = {};
+      formContainer.style.display = 'block';
+      formContainer.innerHTML = `
+        <div style="margin-top:20px;padding-top:20px;border-top:1px solid var(--border)">
+          <div style="font-size:13px;font-weight:500;margin-bottom:16px">2025년 실적 데이터 입력 <span style="font-size:11px;color:var(--text-3);font-weight:400">(2026년 보고서 반영)</span></div>
+          ${renderDetailForm(deptId)}
+        </div>`;
+    } else {
+      formContainer.style.display = 'none';
+    }
+  }
   document.getElementById("btn-step2").disabled = false;
+}
+
+// ── 영역별 세부 입력 항목 정의 ──
+const FORM_SCHEMA = {
+  "env_01": {
+    title: "환경(E) — 공무팀",
+    sections: [
+      { label: "온실가스 배출량", items: [
+        { id: "scope1",        label: "Scope1 직접배출",       unit: "tCO2eq",     prev: 11534, required: true },
+        { id: "scope2",        label: "Scope2 간접배출(전력)", unit: "tCO2eq",     prev: 30903, required: true },
+        { id: "scope1_2_sum",  label: "Scope1+2 합계",         unit: "tCO2eq",     prev: 42437, required: true },
+        { id: "ghg_intensity", label: "온실가스 원단위",        unit: "tCO2eq/억원",prev: 3.087, required: false }
+      ]},
+      { label: "에너지 사용량", items: [
+        { id: "energy_lng",       label: "직접에너지 (LNG)",  unit: "TJ",      prev: 210.6,  required: true },
+        { id: "energy_oil",       label: "직접에너지 (경유)", unit: "TJ",      prev: 5.1,    required: false },
+        { id: "energy_elec",      label: "간접에너지 (전력)", unit: "TJ",      prev: 648.7,  required: true },
+        { id: "energy_total",     label: "에너지 사용량 계",  unit: "TJ",      prev: 864.4,  required: true },
+        { id: "energy_intensity", label: "에너지 원단위",     unit: "TJ/억원", prev: 0.0621, required: false }
+      ]},
+      { label: "폐기물", items: [
+        { id: "waste_total",    label: "폐기물 발생량 합계", unit: "ton", prev: 985, required: true },
+        { id: "waste_recycled", label: "재활용량",           unit: "ton", prev: 501, required: true }
+      ]},
+      { label: "용수", items: [
+        { id: "water_total",  label: "용수 사용량 합계", unit: "ton", prev: 400298, required: true },
+        { id: "water_reused", label: "재이용량",         unit: "ton", prev: 40960,  required: true }
+      ]},
+      { label: "대기오염물질 (대웅그룹 합계)", items: [
+        { id: "nox",  label: "NOx",  unit: "ton", prev: 6.776, required: false },
+        { id: "sox",  label: "SOx",  unit: "ton", prev: 0.082, required: false },
+        { id: "dust", label: "먼지", unit: "ton", prev: 0.447, required: false }
+      ]},
+      { label: "수질오염물질 (대웅그룹 합계)", items: [
+        { id: "toc", label: "TOC", unit: "ton", prev: 5.788, required: false },
+        { id: "bod", label: "BOD", unit: "ton", prev: 5.100, required: false },
+        { id: "ss",  label: "SS",  unit: "ton", prev: 4.905, required: false }
+      ]}
+    ]
+  },
+  "soc_01": {
+    title: "사회(S) — 인재관리팀",
+    sections: [
+      { label: "임직원 현황", items: [
+        { id: "emp_total",    label: "임직원 총인원",    unit: "명", prev: 1757, required: true },
+        { id: "emp_fulltime", label: "정규직",           unit: "명", prev: 1669, required: true },
+        { id: "emp_parttime", label: "기간제(계약직)",   unit: "명", prev: 88,   required: true },
+        { id: "emp_male",     label: "남성",             unit: "명", prev: 1125, required: true },
+        { id: "emp_female",   label: "여성",             unit: "명", prev: 632,  required: true }
+      ]},
+      { label: "여성 관리자 및 이직", items: [
+        { id: "female_manager",     label: "여성 관리자 수",  unit: "명", prev: 18,   required: true },
+        { id: "voluntary_turnover", label: "자발적 이직률",   unit: "%",  prev: 18.3, required: true }
+      ]},
+      { label: "교육", items: [
+        { id: "training_hours", label: "총 교육 시간", unit: "시간",   prev: 31315, required: true },
+        { id: "training_cost",  label: "총 교육 비용", unit: "백만원", prev: 587,   required: false }
+      ]},
+      { label: "사회공헌 및 정보보호", items: [
+        { id: "social_investment",  label: "사회공헌 투자액",              unit: "백만원", prev: 2932, required: false },
+        { id: "it_security_ratio",  label: "정보보호 투자 비율(IT 예산 대비)", unit: "%",  prev: 7.18, required: false }
+      ]}
+    ]
+  },
+  "soc_02": {
+    title: "사회(S) — ESG팀 (산업안전보건)",
+    sections: [
+      { label: "산업재해", items: [
+        { id: "accident_workers", label: "산업재해자 수", unit: "명", prev: 2,    required: true },
+        { id: "accident_rate",    label: "산업재해율",    unit: "%",  prev: 0.07, required: true },
+        { id: "fatal_accidents",  label: "사망사고",      unit: "건", prev: 0,    required: true }
+      ]},
+      { label: "안전보건 교육", items: [
+        { id: "safety_edu_hours", label: "안전보건 교육시간 (총)", unit: "시간", prev: 49291, required: false }
+      ]}
+    ]
+  },
+  "gov_01": {
+    title: "지배구조(G) — IR팀 (대웅제약)",
+    sections: [
+      { label: "이사회 구성", items: [
+        { id: "board_total",    label: "전체 이사 수",     unit: "명", prev: 6, required: true },
+        { id: "board_inside",   label: "사내이사",         unit: "명", prev: 3, required: true },
+        { id: "board_outside",  label: "사외이사",         unit: "명", prev: 3, required: true },
+        { id: "board_female",   label: "여성 등기임원",    unit: "명", prev: 1, required: true },
+        { id: "board_meetings", label: "이사회 개최 횟수", unit: "회", prev: 9, required: true }
+      ]}
+    ]
+  },
+  "gov_02": {
+    title: "지배구조(G) — IR팀 (대웅)",
+    sections: [
+      { label: "이사회 구성", items: [
+        { id: "board_total",    label: "전체 이사 수",     unit: "명", prev: 5, required: true },
+        { id: "board_inside",   label: "사내이사",         unit: "명", prev: 2, required: true },
+        { id: "board_outside",  label: "사외이사",         unit: "명", prev: 3, required: true },
+        { id: "board_female",   label: "여성 등기임원",    unit: "명", prev: 0, required: true },
+        { id: "board_meetings", label: "이사회 개최 횟수", unit: "회", prev: 5, required: true }
+      ]}
+    ]
+  },
+  "eco_01": {
+    title: "경제(ECO) — IR팀",
+    sections: [
+      { label: "대웅제약 재무성과 (연결기준)", items: [
+        { id: "revenue",          label: "매출",       unit: "억원", prev: 14230, required: true },
+        { id: "operating_profit", label: "영업이익",   unit: "억원", prev: 1480,  required: true },
+        { id: "net_profit",       label: "당기순이익", unit: "억원", prev: 230,   required: true },
+        { id: "total_assets",     label: "총자산",     unit: "억원", prev: 19770, required: true }
+      ]},
+      { label: "연구개발 (공통)", items: [
+        { id: "rd_investment", label: "R&D 투자액",  unit: "억원", prev: 2346, required: true },
+        { id: "rd_ratio",      label: "R&D 집중도",  unit: "%",    prev: 18.5, required: false }
+      ]}
+    ]
+  }
+};
+FORM_SCHEMA["env_02"] = { title: "환경(E) — 공무팀 (대웅)", sections: FORM_SCHEMA["env_01"].sections };
+
+let formValues = {};
+
+function renderDetailForm(deptId) {
+  const schema = FORM_SCHEMA[deptId];
+  if (!schema || !schema.sections.length) return '';
+  return schema.sections.map(sec => `
+    <div style="margin-bottom:20px">
+      <div style="font-size:11px;font-weight:500;color:var(--text-2);letter-spacing:0.06em;margin-bottom:10px;padding-bottom:6px;border-bottom:1px solid var(--border)">${sec.label}</div>
+      <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:10px">
+        ${sec.items.map(item => `
+          <div style="margin-bottom:0">
+            <label style="display:flex;justify-content:space-between;font-size:12px;font-weight:500;color:var(--text-2);margin-bottom:5px">
+              <span>${item.label}${item.required ? ' <span style="color:var(--red)">*</span>' : ''}</span>
+              <span style="font-family:DM Mono,monospace;font-size:11px;color:var(--text-3)">전년: ${item.prev.toLocaleString()} ${item.unit}</span>
+            </label>
+            <div style="display:flex;align-items:center;gap:6px">
+              <input type="number" step="any" id="field_${item.id}" placeholder="입력"
+                oninput="formValues['${item.id}']=this.value"
+                style="flex:1;padding:9px 12px;border:1px solid var(--border);border-radius:var(--radius);font-size:13px;font-family:'Noto Sans KR',sans-serif"/>
+              <span style="font-size:12px;color:var(--text-2);white-space:nowrap;min-width:52px">${item.unit}</span>
+            </div>
+          </div>`).join('')}
+      </div>
+    </div>`).join('');
 }
 
 function submitData() {
   if (!selectedDomain) return;
   const dept = SUBMISSION_DATA.departments.find(d => d.dept_id === selectedDomain);
+  const schema = FORM_SCHEMA[selectedDomain];
   const now = new Date().toLocaleString("ko-KR", { timeZone: "Asia/Seoul" });
   const contact = document.getElementById("contact-input").value.trim();
   const note = document.getElementById("note-input").value.trim();
 
-  // admin 직접 제출 시 자동 confirmed, 나머지는 submitted
+  // 필수 항목 검증
+  if (schema) {
+    const missing = [];
+    schema.sections.forEach(sec => sec.items.forEach(item => {
+      if (item.required && !formValues[item.id]) missing.push(item.label);
+    }));
+    if (missing.length > 0) {
+      alert(`필수 항목을 입력해 주세요:\n• ${missing.join('\n• ')}`);
+      return;
+    }
+  }
+
   const isAdmin = _user.role === 'admin';
   const resultStatus = isAdmin ? 'confirmed' : 'submitted';
 
-  // sessionStorage에 제출 정보 저장 → dashboard 복귀 시 배지 표시
+  // 입력 데이터 수집
+  const inputData = {};
+  if (schema) {
+    schema.sections.forEach(sec => sec.items.forEach(item => {
+      if (formValues[item.id] !== undefined && formValues[item.id] !== '') {
+        inputData[item.id] = { value: parseFloat(formValues[item.id]), label: item.label, unit: item.unit, prev: item.prev };
+      }
+    }));
+  }
+
   sessionStorage.setItem('esg_submitted', JSON.stringify({
-    dept_id:      dept.dept_id,
-    dept_name:    dept.dept_name,
-    domain:       dept.domain,
-    domain_label: dept.domain_label,
-    contact,
-    submitted_at: now,
-    status:       resultStatus
+    dept_id: dept.dept_id, dept_name: dept.dept_name,
+    domain: dept.domain, domain_label: dept.domain_label,
+    contact, submitted_at: now, status: resultStatus,
+    input_data: inputData, note
   }));
 
-  // 완료 화면 전환
   document.getElementById("step2").style.display = "none";
   document.getElementById("step3").style.display = "block";
   setStep(3);
 
-  const autoNote = isAdmin
-    ? `<div style="margin-top:8px;padding:8px 12px;background:#d8f3dc;border-radius:6px;font-size:12px;color:#065f46">Admin 직접 제출 — 자동으로 확인 완료(confirmed) 처리됩니다.</div>`
-    : `<div style="margin-top:8px;padding:8px 12px;background:#fff8e1;border-radius:6px;font-size:12px;color:#92400e">제출 완료 후 Admin이 확인하면 상태가 업데이트됩니다.</div>`;
+  // 입력값 요약 테이블
+  const inputRows = Object.entries(inputData).map(([k, v]) => {
+    const chgPct = v.prev ? ((v.value - v.prev) / v.prev * 100).toFixed(1) : null;
+    const chgStyle = chgPct !== null ? (parseFloat(chgPct) > 0 ? 'color:#c1121f' : 'color:#2d6a4f') : '';
+    return `<tr>
+      <td style="padding:5px 8px;color:var(--text-2)">${v.label}</td>
+      <td style="padding:5px 8px;text-align:right;font-family:'DM Mono',monospace">${v.prev.toLocaleString()}</td>
+      <td style="padding:5px 8px;text-align:right;font-family:'DM Mono',monospace;font-weight:500">${parseFloat(v.value).toLocaleString()}</td>
+      <td style="padding:5px 8px;text-align:right;${chgStyle};font-family:'DM Mono',monospace">${chgPct !== null ? (parseFloat(chgPct)>0?'▲':'▼')+Math.abs(chgPct)+'%' : '—'}</td>
+      <td style="padding:5px 8px;color:var(--text-3)">${v.unit}</td>
+    </tr>`;
+  }).join('');
+
+  const adminNote = isAdmin
+    ? `<div style="margin-top:8px;padding:10px 12px;background:#d8f3dc;border-radius:6px;font-size:12px;color:#065f46">Admin 직접 제출 — 자동으로 확인 완료 처리됩니다.</div>`
+    : `<div style="margin-top:8px;padding:10px 12px;background:#fff8e1;border-radius:6px;font-size:12px;color:#92400e;line-height:1.7">Admin이 아래 데이터를 검토합니다.<br>취합현황 탭 → 해당 부서 → <strong>Yes</strong>: data.json 반영 / <strong>No</strong>: 반려 후 재입력 요청</div>`;
 
   document.getElementById("complete-info").innerHTML = `
     <div class="complete-info-row"><span class="info-label">법인</span><span class="info-value">${COMPANY_LABELS[dept.company]}</span></div>
-    <div class="complete-info-row"><span class="info-label">부서</span><span class="info-value">${dept.dept_name}</span></div>
+    <div class="complete-info-row"><span class="info-label">부서 / 영역</span><span class="info-value">${dept.dept_name} · ${dept.domain_label}</span></div>
     <div class="complete-info-row"><span class="info-label">담당자</span><span class="info-value">${contact}</span></div>
-    <div class="complete-info-row"><span class="info-label">제출 영역</span><span class="info-value">${dept.domain_label} (${dept.domain})</span></div>
     <div class="complete-info-row"><span class="info-label">제출 일시</span><span class="info-value">${now}</span></div>
-    <div class="complete-info-row"><span class="info-label">상태</span><span class="info-value" style="color:${isAdmin ? 'var(--green)' : '#1d4e89'}">${isAdmin ? '✅ 확인 완료' : '⏳ 처리 중'}</span></div>
-    ${note ? `<div class="complete-info-row"><span class="info-label">특이사항</span><span class="info-value">${note}</span></div>` : ''}
-    ${autoNote}
-    <div style="margin-top:12px;padding:10px 12px;background:#f0f0ec;border-radius:6px;font-size:11px;font-family:'DM Mono',monospace;color:var(--text-2)">
-      submission.json → dept_id: <strong>${dept.dept_id}</strong> → status: <strong>"${resultStatus}"</strong>
-    </div>
+    <div class="complete-info-row"><span class="info-label">상태</span><span class="info-value" style="color:${isAdmin?'var(--green)':'#1d4e89'}">${isAdmin?'✅ 확인 완료':'⏳ Admin 검토 대기'}</span></div>
+    ${Object.keys(inputData).length > 0 ? `
+      <div style="margin-top:12px">
+        <div style="font-size:12px;font-weight:500;color:var(--text-2);margin-bottom:6px">입력 데이터 요약</div>
+        <table style="width:100%;border-collapse:collapse;font-size:12px">
+          <thead><tr style="background:var(--bg)">
+            <th style="text-align:left;padding:6px 8px;color:var(--text-2)">항목</th>
+            <th style="text-align:right;padding:6px 8px;color:var(--text-2)">전년</th>
+            <th style="text-align:right;padding:6px 8px;color:var(--text-2)">입력값</th>
+            <th style="text-align:right;padding:6px 8px;color:var(--text-2)">증감</th>
+            <th style="text-align:left;padding:6px 8px;color:var(--text-2)">단위</th>
+          </tr></thead>
+          <tbody>${inputRows}</tbody>
+        </table>
+      </div>` : ''}
+    ${note ? `<div class="complete-info-row" style="margin-top:8px"><span class="info-label">특이사항</span><span class="info-value">${note}</span></div>` : ''}
+    ${adminNote}
     <button onclick="location.href='dashboard.html'" style="width:100%;margin-top:16px;padding:12px;background:var(--accent);color:#fff;border:none;border-radius:8px;font-size:14px;font-weight:500;font-family:'Noto Sans KR',sans-serif;cursor:pointer">
       대시보드로 돌아가기
     </button>`;

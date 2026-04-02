@@ -458,6 +458,11 @@ const ESG_DATA = {
     <button class="seg-btn" data-company="daewoong" onclick="setCompany(this)">㈜대웅</button>
   </div>
   <div class="control-group">
+    <span class="control-label">보고서</span>
+    <button class="seg-btn active" id="btn-report-2025" onclick="setReportYear('2025', this)">2025년 보고서</button>
+    <button class="seg-btn" id="btn-report-2026" onclick="setReportYear('2026', this)">2026년 보고서</button>
+  </div>
+  <div class="control-group">
     <span class="control-label">탭</span>
     <button class="seg-btn active" onclick="showTab('overview', this)">종합</button>
     <button class="seg-btn" onclick="showTab('env', this)">환경 E</button>
@@ -497,6 +502,7 @@ const ESG_DATA = {
 
   <!-- ══ 환경 탭 ══ -->
   <div class="tab-panel" id="tab-env">
+    <div id="env-year-banner" style="display:none;padding:10px 16px;border-radius:8px;border:1px solid;font-size:13px;margin-bottom:16px"></div>
     <div class="section-title">환경(E) 주요 지표</div>
 
     <div class="grid-2">
@@ -653,8 +659,20 @@ const ESG_DATA = {
 <script>
 // ── 전역 상태 ──
 let currentCompany = 'daewoong_pharma';
-const YEARS = ['2022','2023','2024'];
+let currentReportYear = '2025'; // '2025' = 2025년 보고서(2022-2024실적), '2026' = 2026년 보고서(2025실적)
+const YEARS_2025 = ['2022','2023','2024'];
+const YEARS_2026 = ['2023','2024','2025'];
+const YEARS = ['2022','2023','2024']; // 하위 호환
 const chartInstances = {};
+
+// ── 보고서 연도 전환 ──
+function setReportYear(year, btn) {
+  currentReportYear = year;
+  document.querySelectorAll('[id^="btn-report-"]').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  // 2026 보고서: 취합현황 탭은 항상 표시 (입력 진행 중이므로)
+  renderAll();
+}
 
 // ── 유틸 ──
 function fmt(n, dec=0) {
@@ -807,40 +825,66 @@ function renderEnv() {
   const env = ESG_DATA.environment[co];
   if (!env) { document.getElementById('tab-env').innerHTML = '<div class="card" style="padding:32px;text-align:center;color:var(--text-2)">대웅(지주)의 환경 데이터는 대웅제약 기준으로 산출됩니다.</div>'; return; }
 
+  const is2026 = currentReportYear === '2026';
+  const displayYears = is2026 ? YEARS_2026 : YEARS_2025;
+  const prevYear = is2026 ? '2024' : '2023';
+  const curYear  = is2026 ? '2025' : '2024';
+
+  // 2026 보고서 모드: 2025년 데이터 미입력 안내 배너
+  const envBanner = document.getElementById('env-year-banner');
+  if (envBanner) {
+    if (is2026) {
+      const has2025 = env.ghg.scope1_2_sum['2025'] !== null && env.ghg.scope1_2_sum['2025'] !== 0;
+      envBanner.style.display = 'flex';
+      envBanner.style.background = has2025 ? '#d8f3dc' : '#fff8e1';
+      envBanner.style.borderColor = has2025 ? '#6ee7b7' : '#fde68a';
+      envBanner.style.color = has2025 ? '#065f46' : '#92400e';
+      envBanner.textContent = has2025
+        ? '2026년 보고서 — 2025년 실적 데이터가 반영되었습니다.'
+        : '2026년 보고서 — 2025년 실적 데이터 취합 중입니다. 입력된 값이 있는 항목만 표시됩니다.';
+    } else {
+      envBanner.style.display = 'none';
+    }
+  }
+
   const ghg = env.ghg;
-  makeChart('chart-ghg', 'bar', YEARS, [
-    { label: 'Scope1 (직접)', data: YEARS.map(y => ghg.scope1[y]), backgroundColor: '#c1121f', borderRadius: 3 },
-    { label: 'Scope2 (간접)', data: YEARS.map(y => ghg.scope2[y]), backgroundColor: '#fca5a5', borderRadius: 3 }
+  const safeVal = (obj, y) => (obj[y] === null || obj[y] === undefined) ? null : obj[y];
+
+  makeChart('chart-ghg', 'bar', displayYears, [
+    { label: 'Scope1 (직접)', data: displayYears.map(y => safeVal(ghg.scope1, y)), backgroundColor: '#c1121f', borderRadius: 3 },
+    { label: 'Scope2 (간접)', data: displayYears.map(y => safeVal(ghg.scope2, y)), backgroundColor: '#fca5a5', borderRadius: 3 }
   ]);
 
-  makeChart('chart-energy', 'line', YEARS, [{
+  makeChart('chart-energy', 'line', displayYears, [{
     label: '총 에너지 사용량 (TJ)',
-    data: YEARS.map(y => env.energy.total[y]),
+    data: displayYears.map(y => safeVal(env.energy.total, y)),
     borderColor: '#b5740a', backgroundColor: '#fff3cd44',
     fill: true, tension: 0.3, pointRadius: 5
   }]);
 
-  makeChart('chart-waste', 'bar', YEARS, [
-    { label: '발생량', data: YEARS.map(y => env.waste.total[y]),   backgroundColor: '#1a1a18', borderRadius: 3 },
-    { label: '재활용', data: YEARS.map(y => env.waste.recycled[y]),backgroundColor: '#2d6a4f', borderRadius: 3 }
+  makeChart('chart-waste', 'bar', displayYears, [
+    { label: '발생량', data: displayYears.map(y => safeVal(env.waste.total, y)),    backgroundColor: '#1a1a18', borderRadius: 3 },
+    { label: '재활용', data: displayYears.map(y => safeVal(env.waste.recycled, y)), backgroundColor: '#2d6a4f', borderRadius: 3 }
   ]);
 
-  makeChart('chart-water', 'bar', YEARS, [
-    { label: '사용량', data: YEARS.map(y => env.water.total[y]),  backgroundColor: '#1d4e89', borderRadius: 3 },
-    { label: '재이용', data: YEARS.map(y => env.water.reused[y]), backgroundColor: '#93c5fd', borderRadius: 3 }
+  makeChart('chart-water', 'bar', displayYears, [
+    { label: '사용량', data: displayYears.map(y => safeVal(env.water.total, y)),  backgroundColor: '#1d4e89', borderRadius: 3 },
+    { label: '재이용', data: displayYears.map(y => safeVal(env.water.reused, y)), backgroundColor: '#93c5fd', borderRadius: 3 }
   ]);
 
-  // 증감률 테이블
+  // 증감률 테이블 (전년→당해)
+  const pyLabel = is2026 ? '2024' : '2023';
+  const cyLabel = is2026 ? '2025' : '2024';
   const rows = [
-    { name: '온실가스 Scope1+2', a: ghg.scope1_2_sum['2023'], b: ghg.scope1_2_sum['2024'], unit: 'tCO2eq', up_is_bad: true },
-    { name: '에너지 사용량', a: env.energy.total['2023'], b: env.energy.total['2024'], unit: 'TJ', up_is_bad: true },
-    { name: '폐기물 발생량', a: env.waste.total['2023'],  b: env.waste.total['2024'],  unit: 'ton', up_is_bad: true },
-    { name: '용수 사용량',   a: env.water.total['2023'],  b: env.water.total['2024'],  unit: 'ton', up_is_bad: true },
-    { name: '폐기물 재활용량', a: env.waste.recycled['2023'], b: env.waste.recycled['2024'], unit: 'ton', up_is_bad: false }
+    { name: '온실가스 Scope1+2', a: safeVal(ghg.scope1_2_sum, prevYear), b: safeVal(ghg.scope1_2_sum, curYear), unit: 'tCO2eq', up_is_bad: true },
+    { name: '에너지 사용량',     a: safeVal(env.energy.total, prevYear), b: safeVal(env.energy.total, curYear), unit: 'TJ',      up_is_bad: true },
+    { name: '폐기물 발생량',     a: safeVal(env.waste.total, prevYear),  b: safeVal(env.waste.total, curYear),  unit: 'ton',     up_is_bad: true },
+    { name: '용수 사용량',       a: safeVal(env.water.total, prevYear),  b: safeVal(env.water.total, curYear),  unit: 'ton',     up_is_bad: true },
+    { name: '폐기물 재활용량',   a: safeVal(env.waste.recycled, prevYear), b: safeVal(env.waste.recycled, curYear), unit: 'ton', up_is_bad: false }
   ];
   document.getElementById('env-change-table').innerHTML = `
     <thead><tr>
-      <th>항목</th><th>2023</th><th>2024</th><th>증감률</th><th>단위</th>
+      <th>항목</th><th>${pyLabel}</th><th>${cyLabel}${is2026 ? ' (입력 예정)' : ''}</th><th>증감률</th><th>단위</th>
     </tr></thead>
     <tbody>${rows.map(r => {
       const chg = pct(r.a, r.b);
@@ -849,7 +893,7 @@ function renderEnv() {
       return `<tr>
         <td>${r.name}</td>
         <td>${fmt(r.a)}</td>
-        <td>${fmt(r.b)}</td>
+        <td>${r.b === null ? '<span style="color:var(--text-3)">미입력</span>' : fmt(r.b)}</td>
         <td class="${cls}">${chg !== null ? arrow + Math.abs(chg) + '%' : '—'}</td>
         <td>${r.unit}</td>
       </tr>`;
@@ -859,11 +903,11 @@ function renderEnv() {
   const items = [
     { label: '이사회 기후변화 이슈 관리', status: 'red',   kcgs: 'E001', note: '없음 → 이사회 안건 등록 필요' },
     { label: '기후변화 중장기 목표·전략 공개', status: 'green', kcgs: 'E007', note: '중장기 목표·세부전략 모두 공개' },
-    { label: '온실가스 3개년 추이', status: 'red',   kcgs: 'E022', note: '22→23→24 증가 추세 (KCGS 감점)' },
-    { label: '에너지 사용량 3개년 추이', status: 'red',   kcgs: 'E028', note: '750→762→864 TJ 증가 추세 (KCGS 감점)' },
+    { label: '온실가스 3개년 추이', status: 'red',   kcgs: 'E022', note: is2026 ? '2025년 데이터 입력 후 추이 확인 가능' : '22→23→24 증가 추세 (KCGS 감점)' },
+    { label: '에너지 사용량 3개년 추이', status: 'red',   kcgs: 'E028', note: is2026 ? '2025년 데이터 입력 후 추이 확인 가능' : '750→762→864 TJ 증가 추세 (KCGS 감점)' },
     { label: '폐기물 발생량 3개년 추이', status: 'amber', kcgs: 'E036', note: '2개년 연속 개선 (1159→985)' },
     { label: '재활용 실적 개선',          status: 'green', kcgs: 'E038', note: '전년 대비 재활용 실적 개선' },
-    { label: '용수 사용량 3개년 추이',     status: 'red',   kcgs: 'E043', note: '310,596→343,083→400,298 ton 증가 (KCGS 감점)' },
+    { label: '용수 사용량 3개년 추이',     status: 'red',   kcgs: 'E043', note: is2026 ? '2025년 데이터 입력 후 추이 확인 가능' : '310,596→343,083→400,298 ton 증가 (KCGS 감점)' },
     { label: '용수 재이용 실적',           status: 'green', kcgs: 'E045', note: '전년 대비 재이용 실적 개선' },
     { label: '공급망 환경 리스크 관리',     status: 'red',   kcgs: 'E054', note: '없음 → 제도 수립 필요' },
     { label: '환경 이니셔티브 참여 공개',   status: 'red',   kcgs: 'E060', note: '없음 → 즉시 공개 가능' }
@@ -1127,43 +1171,123 @@ function renderCollection() {
       <div style="font-size:12px;color:var(--text-2)">건</div>
     </div>`).join('');
 
-  // ④ admin 전용: status 수정 패널
+  // ④ admin 전용: status 수정 패널 (Yes/No 흐름)
   const adminPanel = document.getElementById('collection-admin-panel');
   if (_user.role === 'admin') {
     adminPanel.style.display = 'block';
+
+    // sessionStorage에서 제출된 입력 데이터 확인
+    const submittedRaw = sessionStorage.getItem('esg_submitted');
+    const submitted = submittedRaw ? JSON.parse(submittedRaw) : null;
+    const hasInputData = submitted && submitted.input_data && Object.keys(submitted.input_data).length > 0;
+
+    const inputReviewHtml = hasInputData ? (() => {
+      const rows = Object.entries(submitted.input_data).map(([k, v]) => {
+        const chg = v.prev ? ((v.value - v.prev) / v.prev * 100).toFixed(1) : null;
+        const chgStyle = chg !== null ? (parseFloat(chg) > 0 ? 'color:#c1121f' : 'color:#2d6a4f') : '';
+        return `<tr>
+          <td style="padding:5px 8px;color:var(--text-2)">${v.label}</td>
+          <td style="padding:5px 8px;text-align:right;font-family:'DM Mono',monospace">${v.prev.toLocaleString()}</td>
+          <td style="padding:5px 8px;text-align:right;font-family:'DM Mono',monospace;font-weight:500">${parseFloat(v.value).toLocaleString()}</td>
+          <td style="padding:5px 8px;text-align:right;${chgStyle};font-family:'DM Mono',monospace">${chg !== null ? (parseFloat(chg)>0?'▲':'▼')+Math.abs(chg)+'%' : '—'}</td>
+          <td style="padding:5px 8px;color:var(--text-3)">${v.unit}</td>
+        </tr>`;
+      }).join('');
+      return `
+        <div style="margin:14px 0;padding:14px;background:var(--bg);border-radius:8px;border:1px solid var(--border)">
+          <div style="font-size:12px;font-weight:500;margin-bottom:10px;color:var(--text-1)">
+            ${submitted.dept_name} · ${submitted.domain_label} · ${submitted.contact} · ${submitted.submitted_at}
+          </div>
+          <div style="font-size:13px;color:var(--text-2);margin-bottom:10px">
+            User가 입력한 값은 아래와 같습니다. 해당 데이터로 반영하시겠습니까?
+          </div>
+          <table style="width:100%;border-collapse:collapse;font-size:12px;background:#fff;border-radius:6px;overflow:hidden">
+            <thead><tr style="background:var(--border)">
+              <th style="text-align:left;padding:7px 8px;color:var(--text-2)">항목</th>
+              <th style="text-align:right;padding:7px 8px;color:var(--text-2)">전년</th>
+              <th style="text-align:right;padding:7px 8px;color:var(--text-2)">입력값</th>
+              <th style="text-align:right;padding:7px 8px;color:var(--text-2)">증감</th>
+              <th style="text-align:left;padding:7px 8px;color:var(--text-2)">단위</th>
+            </tr></thead>
+            <tbody>${rows}</tbody>
+          </table>
+          <div style="display:flex;gap:10px;margin-top:14px">
+            <button onclick="adminYes()" style="flex:1;padding:10px;background:#2d6a4f;color:#fff;border:none;border-radius:6px;font-size:14px;font-weight:500;font-family:'Noto Sans KR',sans-serif;cursor:pointer">✅ Yes — data.json에 반영</button>
+            <button onclick="adminNo()" style="flex:1;padding:10px;background:#fff;color:#c1121f;border:1px solid #c1121f;border-radius:6px;font-size:14px;font-weight:500;font-family:'Noto Sans KR',sans-serif;cursor:pointer">🔴 No — 반려 및 재입력 요청</button>
+          </div>
+          <div id="admin-action-result" style="margin-top:12px;display:none"></div>
+        </div>`;
+    })() : `<div style="padding:14px;background:var(--bg);border-radius:8px;font-size:13px;color:var(--text-2)">담당자가 제출한 데이터가 없습니다. 담당자가 input.html에서 제출하면 여기에 표시됩니다.</div>`;
+
     adminPanel.innerHTML = `
       <div class="card" style="margin-bottom:16px">
-        <div class="card-title">Status 수정 (Admin 전용)</div>
-        <p style="font-size:12px;color:var(--text-2);margin-bottom:14px;line-height:1.7">
-          아래에서 부서를 선택하고 상태를 변경한 후 <strong>submission.json</strong>을 수동으로 업데이트하세요.<br>
-          변경할 dept_id와 status 값을 확인하고 GitHub esg-data 저장소에 반영합니다.
-        </p>
-        <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end">
-          <div>
-            <div style="font-size:11px;color:var(--text-2);margin-bottom:4px">부서 선택</div>
-            <select id="admin-dept-select" style="padding:8px 12px;border:1px solid var(--border);border-radius:6px;font-family:'Noto Sans KR',sans-serif;font-size:13px;min-width:200px">
-              <option value="">선택하세요</option>
+        <div class="card-title">데이터 검토 및 반영 (Admin 전용)</div>
+        ${inputReviewHtml}
+        <div style="margin-top:16px;padding-top:14px;border-top:1px solid var(--border)">
+          <div style="font-size:12px;font-weight:500;color:var(--text-2);margin-bottom:10px">수동 status 수정</div>
+          <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end">
+            <select id="admin-dept-select" style="padding:8px 12px;border:1px solid var(--border);border-radius:6px;font-family:'Noto Sans KR',sans-serif;font-size:13px;flex:1;min-width:200px">
+              <option value="">부서 선택</option>
               ${depts.map(d => `<option value="${d.dept_id}">[${d.domain}] ${d.dept_name} · ${d.contact} (현재: ${STATUS_STYLE[d.status]?.label || d.status})</option>`).join('')}
             </select>
-          </div>
-          <div>
-            <div style="font-size:11px;color:var(--text-2);margin-bottom:4px">변경 상태</div>
             <select id="admin-status-select" style="padding:8px 12px;border:1px solid var(--border);border-radius:6px;font-family:'Noto Sans KR',sans-serif;font-size:13px">
-              <option value="confirmed">✅ 확인 완료 (confirmed)</option>
-              <option value="rejected">🔴 반려 (rejected)</option>
-              <option value="submitted">⏳ 제출됨 (submitted)</option>
-              <option value="pending">— 미제출 (pending)</option>
+              <option value="confirmed">✅ confirmed</option>
+              <option value="rejected">🔴 rejected</option>
+              <option value="submitted">⏳ submitted</option>
+              <option value="pending">— pending</option>
             </select>
+            <button onclick="showAdminGuide()" style="padding:8px 18px;background:var(--accent);color:#fff;border:none;border-radius:6px;font-family:'Noto Sans KR',sans-serif;font-size:13px;cursor:pointer">수정 가이드</button>
           </div>
-          <button onclick="showAdminGuide()" style="padding:8px 18px;background:var(--accent);color:#fff;border:none;border-radius:6px;font-family:'Noto Sans KR',sans-serif;font-size:13px;cursor:pointer">
-            수정 가이드 보기
-          </button>
+          <div id="admin-guide-box" style="display:none;margin-top:12px;padding:12px;background:var(--bg);border-radius:6px;font-family:'DM Mono',monospace;font-size:12px;line-height:1.9"></div>
         </div>
-        <div id="admin-guide-box" style="display:none;margin-top:14px;padding:14px;background:var(--bg);border-radius:6px;font-family:'DM Mono',monospace;font-size:12px;line-height:1.9"></div>
       </div>`;
   } else {
     adminPanel.style.display = 'none';
   }
+}
+
+// ── Admin Yes/No 처리 ──
+function adminYes() {
+  const submitted = JSON.parse(sessionStorage.getItem('esg_submitted') || '{}');
+  const result = document.getElementById('admin-action-result');
+  if (!result) return;
+
+  const lines = Object.entries(submitted.input_data || {}).map(([k, v]) =>
+    `  "${k}": { ..., "2025": ${v.value} }`
+  ).join('\n');
+
+  result.style.display = 'block';
+  result.innerHTML = `
+    <div style="background:#d8f3dc;border:1px solid #6ee7b7;border-radius:8px;padding:14px">
+      <div style="font-weight:500;color:#065f46;margin-bottom:10px">✅ 반영 확정 — data.json 수정 내용</div>
+      <pre style="font-family:'DM Mono',monospace;font-size:11px;color:#065f46;white-space:pre-wrap;line-height:1.8;background:#f0fdf4;padding:10px;border-radius:6px">${lines}</pre>
+      <div style="font-size:12px;color:#2d6a4f;margin-top:10px">
+        위 값을 esg-data 저장소의 data.json에서 해당 항목의 "2025" 키에 반영 후 Commit 하세요.<br>
+        완료 후 submission.json의 <strong>${submitted.dept_id}</strong> → status: <strong>"confirmed"</strong>로 변경하세요.
+      </div>
+      <button onclick="sessionStorage.removeItem('esg_submitted');renderCollection()" style="margin-top:10px;padding:7px 16px;background:#2d6a4f;color:#fff;border:none;border-radius:6px;font-size:12px;cursor:pointer;font-family:'Noto Sans KR',sans-serif">완료 처리</button>
+    </div>`;
+}
+
+function adminNo() {
+  const submitted = JSON.parse(sessionStorage.getItem('esg_submitted') || '{}');
+  const result = document.getElementById('admin-action-result');
+  if (!result) return;
+
+  const reason = prompt('반려 사유를 입력해 주세요:');
+  if (reason === null) return;
+
+  result.style.display = 'block';
+  result.innerHTML = `
+    <div style="background:#fce4e4;border:1px solid #fca5a5;border-radius:8px;padding:14px">
+      <div style="font-weight:500;color:#991b1b;margin-bottom:8px">🔴 반려 처리</div>
+      <div style="font-size:12px;color:#c1121f;line-height:1.7">
+        반려 사유: <strong>${reason || '(사유 미입력)'}</strong><br>
+        submission.json → <strong>${submitted.dept_id}</strong> → status: <strong>"rejected"</strong>, reject_reason: <strong>"${reason || ''}"</strong> 으로 변경하세요.<br>
+        User가 다음 login 시 반려 사유와 함께 재입력 안내가 표시됩니다.
+      </div>
+      <button onclick="sessionStorage.removeItem('esg_submitted');renderCollection()" style="margin-top:10px;padding:7px 16px;background:#c1121f;color:#fff;border:none;border-radius:6px;font-size:12px;cursor:pointer;font-family:'Noto Sans KR',sans-serif">확인</button>
+    </div>`;
 }
 
 // ── Admin status 수정 가이드 ──
