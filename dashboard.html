@@ -612,16 +612,28 @@ const ESG_DATA = {
 
     <!-- 담당자 제출 링크 안내 -->
     <div class="card">
-      <div class="card-title">담당자 제출 링크</div>
-      <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap">
-        <span style="font-family:'DM Mono',monospace;font-size:12px;background:var(--bg);padding:8px 14px;border-radius:6px;border:1px solid var(--border);flex:1">
-          https://kyle-min-cloud.github.io/esg-dashboard/input.html
-        </span>
-        <button onclick="navigator.clipboard.writeText('https://kyle-min-cloud.github.io/esg-dashboard/input.html')" style="padding:8px 16px;border:1px solid var(--border);border-radius:6px;background:var(--surface);font-size:12px;cursor:pointer;font-family:'Noto Sans KR',sans-serif;white-space:nowrap">
-          링크 복사
-        </button>
+      <div class="card-title">페이지 링크</div>
+      <div style="display:flex;flex-direction:column;gap:10px">
+        <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap">
+          <span style="font-size:12px;color:var(--text-2);min-width:80px">담당자 제출</span>
+          <span style="font-family:'DM Mono',monospace;font-size:12px;background:var(--bg);padding:6px 12px;border-radius:6px;border:1px solid var(--border);flex:1">
+            https://kyle-min-cloud.github.io/esg-dashboard/input.html
+          </span>
+          <button onclick="navigator.clipboard.writeText('https://kyle-min-cloud.github.io/esg-dashboard/input.html')" style="padding:6px 12px;border:1px solid var(--border);border-radius:6px;background:var(--surface);font-size:12px;cursor:pointer;font-family:'Noto Sans KR',sans-serif;white-space:nowrap">
+            복사
+          </button>
+        </div>
+        <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap">
+          <span style="font-size:12px;color:var(--text-2);min-width:80px">Admin 검토</span>
+          <span style="font-family:'DM Mono',monospace;font-size:12px;background:var(--bg);padding:6px 12px;border-radius:6px;border:1px solid var(--border);flex:1">
+            https://kyle-min-cloud.github.io/esg-dashboard/admin.html
+          </span>
+          <a href="admin.html" id="admin-review-link" style="display:none;padding:6px 14px;background:var(--accent);color:#fff;border-radius:6px;font-size:12px;text-decoration:none;font-family:'Noto Sans KR',sans-serif;white-space:nowrap">
+            검토 페이지 열기
+          </a>
+        </div>
       </div>
-      <p style="font-size:12px;color:var(--text-3);margin-top:10px">담당자에게 위 링크를 공유하세요. 제출 완료 후 submission.json의 status를 "submitted"로 변경하면 현황이 업데이트됩니다.</p>
+      <p style="font-size:12px;color:var(--text-3);margin-top:10px">담당자 제출 후 Admin이 admin.html에서 Yes/No로 데이터를 검토·반영합니다.</p>
     </div>
   </div>
 
@@ -1252,20 +1264,50 @@ function adminYes() {
   const result = document.getElementById('admin-action-result');
   if (!result) return;
 
-  const lines = Object.entries(submitted.input_data || {}).map(([k, v]) =>
-    `  "${k}": { ..., "2025": ${v.value} }`
+  const now = new Date().toLocaleString('ko-KR');
+  const changedRows = Object.entries(submitted.input_data || {}).map(([k, v]) => {
+    const chg = v.prev ? ((v.value - v.prev) / v.prev * 100).toFixed(1) : null;
+    const chgStyle = chg !== null ? (parseFloat(chg) > 0 ? 'color:#991b1b' : 'color:#166534') : '';
+    const rowBg = chg !== null && parseFloat(chg) > 0 ? '#fef9c3' : '#f0fdf4';
+    return `<tr style="background:${rowBg}">
+      <td style="padding:6px 10px;border:1px solid #e2e8f0;font-size:12px;color:#374151">${v.label}</td>
+      <td style="padding:6px 10px;border:1px solid #e2e8f0;font-family:'DM Mono',monospace;font-size:12px;color:#6b7280;text-decoration:line-through">${v.prev.toLocaleString()}</td>
+      <td style="padding:6px 10px;border:1px solid #e2e8f0;font-family:'DM Mono',monospace;font-size:12px;font-weight:600;color:#111827">
+        ${parseFloat(v.value).toLocaleString()}
+        <span style="margin-left:6px;font-size:10px;padding:1px 6px;border-radius:3px;background:${parseFloat(chg||0)>0?'#fef08a':'#bbf7d0'};${chgStyle}">${chg !== null ? (parseFloat(chg)>0?'▲':'▼')+Math.abs(chg)+'%' : '—'}</span>
+      </td>
+      <td style="padding:6px 10px;border:1px solid #e2e8f0;color:#6b7280;font-size:11px">${v.unit}</td>
+      <td style="padding:6px 10px;border:1px solid #e2e8f0;font-size:10px;color:#9ca3af;white-space:nowrap">${submitted.contact} · ${now}</td>
+    </tr>`;
+  }).join('');
+
+  const jsonLines = Object.entries(submitted.input_data || {}).map(([k, v]) =>
+    `  "2025": ${v.value}  ← ${v.label} (${v.unit})`
   ).join('\n');
 
   result.style.display = 'block';
   result.innerHTML = `
-    <div style="background:#d8f3dc;border:1px solid #6ee7b7;border-radius:8px;padding:14px">
-      <div style="font-weight:500;color:#065f46;margin-bottom:10px">✅ 반영 확정 — data.json 수정 내용</div>
-      <pre style="font-family:'DM Mono',monospace;font-size:11px;color:#065f46;white-space:pre-wrap;line-height:1.8;background:#f0fdf4;padding:10px;border-radius:6px">${lines}</pre>
-      <div style="font-size:12px;color:#2d6a4f;margin-top:10px">
-        위 값을 esg-data 저장소의 data.json에서 해당 항목의 "2025" 키에 반영 후 Commit 하세요.<br>
-        완료 후 submission.json의 <strong>${submitted.dept_id}</strong> → status: <strong>"confirmed"</strong>로 변경하세요.
+    <div style="background:#f0fdf4;border:1px solid #86efac;border-radius:8px;padding:14px">
+      <div style="font-weight:500;color:#166534;margin-bottom:10px;font-size:13px">✅ 반영 확정 — 변경 내역 (Google Sheets 히스토리 방식)</div>
+      <table style="width:100%;border-collapse:collapse;font-size:12px;border:1px solid #e2e8f0;border-radius:6px;overflow:hidden">
+        <thead><tr style="background:#f8fafc">
+          <th style="padding:6px 10px;border:1px solid #e2e8f0;text-align:left;color:#6b7280;font-size:11px">항목</th>
+          <th style="padding:6px 10px;border:1px solid #e2e8f0;text-align:left;color:#6b7280;font-size:11px">이전값</th>
+          <th style="padding:6px 10px;border:1px solid #e2e8f0;text-align:left;color:#6b7280;font-size:11px">변경값</th>
+          <th style="padding:6px 10px;border:1px solid #e2e8f0;text-align:left;color:#6b7280;font-size:11px">단위</th>
+          <th style="padding:6px 10px;border:1px solid #e2e8f0;text-align:left;color:#6b7280;font-size:11px">변경자 · 시각</th>
+        </tr></thead>
+        <tbody>${changedRows}</tbody>
+      </table>
+      <div style="margin-top:10px;padding:10px;background:#dcfce7;border-radius:6px;font-size:11px;color:#166534;line-height:1.7">
+        <strong>data.json 반영 방법:</strong><br>
+        esg-data → data.json → 해당 항목 "2025" 값을 아래와 같이 수정 후 Commit<br>
+        <pre style="font-family:'DM Mono',monospace;font-size:11px;margin-top:6px;background:#f0fdf4;padding:8px;border-radius:4px">${jsonLines}</pre>
       </div>
-      <button onclick="sessionStorage.removeItem('esg_submitted');renderCollection()" style="margin-top:10px;padding:7px 16px;background:#2d6a4f;color:#fff;border:none;border-radius:6px;font-size:12px;cursor:pointer;font-family:'Noto Sans KR',sans-serif">완료 처리</button>
+      <div style="display:flex;gap:8px;margin-top:10px">
+        <button onclick="sessionStorage.removeItem('esg_submitted');renderCollection()" style="padding:7px 14px;background:#166534;color:#fff;border:none;border-radius:6px;font-size:12px;cursor:pointer;font-family:'Noto Sans KR',sans-serif">반영 완료 처리</button>
+        <span style="font-size:11px;color:#6b7280;line-height:2.2">완료 후 submission.json → ${submitted.dept_id} → status: "confirmed"</span>
+      </div>
     </div>`;
 }
 
@@ -1338,6 +1380,11 @@ document.getElementById('user-badge').textContent = _user.name || '';
 // admin + manager: 취합현황 탭 표시
 if (_user.role === 'admin' || _user.role === 'manager') {
   document.getElementById('btn-collection').style.display = '';
+}
+// admin 전용: 검토 페이지 링크 표시
+if (_user.role === 'admin') {
+  const adminLink = document.getElementById('admin-review-link');
+  if (adminLink) adminLink.style.display = '';
 }
 
 // ── 제출 후 복귀 상태 배지 ──

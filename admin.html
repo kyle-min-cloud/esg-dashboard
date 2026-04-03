@@ -1,0 +1,347 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ESG 관리자 — 데이터 검토</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700&family=DM+Mono:wght@400;500&display=swap');
+  :root {
+    --bg:#f4f4f0; --surface:#fff; --border:#e2e2da;
+    --text-1:#1a1a18; --text-2:#5a5a54; --text-3:#9a9a92;
+    --accent:#1a1a18; --green:#2d6a4f; --green-bg:#d8f3dc;
+    --red:#c1121f; --red-bg:#fce4e4; --radius:8px;
+  }
+  * { box-sizing:border-box; margin:0; padding:0; }
+  body { font-family:'Noto Sans KR',sans-serif; background:var(--bg); color:var(--text-1); font-size:14px; }
+
+  .header { background:var(--accent); color:#fff; padding:16px 32px; display:flex; align-items:center; gap:14px; }
+  .logo { font-family:'DM Mono',monospace; font-size:10px; background:#fff; color:var(--accent); padding:3px 9px; border-radius:4px; }
+
+  .main { max-width:1100px; margin:0 auto; padding:28px 24px; }
+
+  /* 섹션 타이틀 */
+  .section-title { font-size:15px; font-weight:700; margin-bottom:14px; display:flex; align-items:center; gap:8px; }
+  .section-title::before { content:''; display:block; width:4px; height:16px; background:var(--accent); border-radius:2px; }
+
+  /* 카드 */
+  .card { background:var(--surface); border:1px solid var(--border); border-radius:var(--radius); padding:20px; margin-bottom:16px; }
+
+  /* 상태 배지 */
+  .badge { display:inline-block; padding:2px 8px; border-radius:4px; font-size:11px; font-weight:500; }
+  .badge-submitted { background:#dbeafe; color:#1e3a8a; }
+  .badge-confirmed { background:var(--green-bg); color:var(--green); }
+  .badge-rejected  { background:var(--red-bg); color:var(--red); }
+  .badge-pending   { background:var(--bg); color:var(--text-3); border:1px solid var(--border); }
+
+  /* diff 테이블 */
+  .diff-table { width:100%; border-collapse:collapse; font-size:13px; }
+  .diff-table th { background:#f8fafc; padding:8px 12px; text-align:left; font-size:11px; font-weight:500; color:var(--text-2); border:1px solid #e2e8f0; }
+  .diff-table td { padding:8px 12px; border:1px solid #e2e8f0; }
+  .diff-table tr.row-up   { background:#fef9c3; }
+  .diff-table tr.row-down { background:#f0fdf4; }
+  .diff-table .old-val { font-family:'DM Mono',monospace; color:#6b7280; text-decoration:line-through; font-size:12px; }
+  .diff-table .new-val { font-family:'DM Mono',monospace; font-weight:600; color:#111827; font-size:13px; }
+  .diff-badge {
+    display:inline-block; margin-left:6px; padding:1px 6px; border-radius:3px;
+    font-size:10px; font-weight:500; font-family:'DM Mono',monospace;
+  }
+  .diff-badge.up   { background:#fef08a; color:#92400e; }
+  .diff-badge.down { background:#bbf7d0; color:#166534; }
+  .diff-badge.zero { background:#f1f5f9; color:#64748b; }
+
+  /* JSON 코드 블록 */
+  .code-block {
+    background:#1e293b; color:#e2e8f0; border-radius:6px;
+    padding:14px 16px; font-family:'DM Mono',monospace; font-size:12px;
+    line-height:1.8; overflow-x:auto; margin-top:12px;
+  }
+  .code-key    { color:#7dd3fc; }
+  .code-val    { color:#86efac; }
+  .code-old    { color:#6b7280; text-decoration:line-through; }
+  .code-new    { color:#86efac; font-weight:600; }
+
+  /* 액션 버튼 */
+  .btn-yes { background:#166534; color:#fff; border:none; border-radius:6px; padding:10px 20px; font-size:13px; font-weight:500; font-family:'Noto Sans KR',sans-serif; cursor:pointer; }
+  .btn-no  { background:#fff; color:var(--red); border:1px solid var(--red); border-radius:6px; padding:10px 20px; font-size:13px; font-weight:500; font-family:'Noto Sans KR',sans-serif; cursor:pointer; }
+  .btn-yes:hover { opacity:.85; } .btn-no:hover { opacity:.85; }
+
+  /* 빈 상태 */
+  .empty-state { text-align:center; padding:48px; color:var(--text-3); font-size:13px; }
+
+  /* submission 목록 */
+  .submission-row { display:flex; align-items:center; gap:12px; padding:12px 16px; border:1px solid var(--border); border-radius:var(--radius); background:var(--surface); margin-bottom:8px; cursor:pointer; transition:border-color .15s; }
+  .submission-row:hover { border-color:var(--accent); }
+  .submission-row.active { border-color:#1d4e89; background:#f0f7ff; }
+
+  /* 반려 사유 입력 */
+  .reject-input { width:100%; padding:9px 12px; border:1px solid var(--border); border-radius:6px; font-size:13px; font-family:'Noto Sans KR',sans-serif; margin-top:10px; }
+</style>
+</head>
+<body>
+
+<header class="header">
+  <span class="logo">DAEWOONG GROUP</span>
+  <span style="font-size:14px;font-weight:500;opacity:.9">ESG 관리자 — 데이터 검토</span>
+  <div style="margin-left:auto;display:flex;align-items:center;gap:12px">
+    <span id="admin-user-badge" style="font-size:11px;font-family:'DM Mono',monospace;opacity:.6"></span>
+    <a href="dashboard.html" style="font-size:11px;color:#fff;opacity:.7;text-decoration:none;border:1px solid rgba(255,255,255,.3);padding:4px 10px;border-radius:4px">대시보드</a>
+    <button onclick="sessionStorage.removeItem('esg_user');location.href='login.html'" style="font-size:11px;font-family:'Noto Sans KR',sans-serif;background:transparent;border:1px solid rgba(255,255,255,.3);color:#fff;padding:4px 10px;border-radius:4px;cursor:pointer;opacity:.7">로그아웃</button>
+  </div>
+</header>
+
+<main class="main">
+
+  <!-- 안내 배너 -->
+  <div style="background:#eff6ff;border:1px solid #bfdbfe;border-radius:8px;padding:12px 16px;margin-bottom:20px;font-size:13px;color:#1e3a8a;line-height:1.7">
+    담당자가 제출한 데이터를 검토하고 <strong>Yes</strong>(data.json 반영) 또는 <strong>No</strong>(반려·재입력 요청)를 선택하세요.<br>
+    Yes 선택 시 data.json 수정 코드가 생성됩니다. 해당 내용을 esg-data 저장소에 반영하세요.
+  </div>
+
+  <div style="display:grid;grid-template-columns:280px 1fr;gap:20px;align-items:flex-start">
+
+    <!-- 좌측: 제출 목록 -->
+    <div>
+      <div class="section-title">제출 목록</div>
+      <div id="submission-list"></div>
+    </div>
+
+    <!-- 우측: 검토 패널 -->
+    <div>
+      <div class="section-title">검토 화면</div>
+      <div id="review-panel">
+        <div class="empty-state">좌측에서 검토할 제출 건을 선택하세요.</div>
+      </div>
+    </div>
+
+  </div>
+</main>
+
+<script>
+// ── 인증 가드 (admin 전용) ──
+const _session = sessionStorage.getItem('esg_user');
+if (!_session) { location.href = 'login.html'; }
+const _user = _session ? JSON.parse(_session) : {};
+if (_user.role !== 'admin') { location.href = 'dashboard.html'; }
+document.getElementById('admin-user-badge').textContent = _user.name || '';
+
+// ── 제출 데이터 (sessionStorage + 시연용 샘플) ──
+const submittedRaw = sessionStorage.getItem('esg_submitted');
+const liveSubmission = submittedRaw ? JSON.parse(submittedRaw) : null;
+
+// 시연용 샘플 데이터 (실제 운영 시 submission.json에서 로드)
+const SAMPLE_SUBMISSIONS = [
+  ...(liveSubmission ? [{
+    id: 'live_01',
+    dept_name: liveSubmission.dept_name,
+    domain_label: liveSubmission.domain_label,
+    contact: liveSubmission.contact,
+    submitted_at: liveSubmission.submitted_at,
+    status: 'submitted',
+    input_data: liveSubmission.input_data || {},
+    note: liveSubmission.note || '',
+    isLive: true
+  }] : []),
+  {
+    id: 'sample_01',
+    dept_name: '공무팀', domain_label: '환경 E', contact: '이종현',
+    submitted_at: '2026-04-01 09:32',
+    status: 'submitted',
+    input_data: {
+      scope1:       { label: 'Scope1 직접배출',   value: 11820, prev: 11534, unit: 'tCO2eq' },
+      scope2:       { label: 'Scope2 간접배출',   value: 31540, prev: 30903, unit: 'tCO2eq' },
+      scope1_2_sum: { label: 'Scope1+2 합계',     value: 43360, prev: 42437, unit: 'tCO2eq' },
+      energy_total: { label: '에너지 사용량 계',  value: 880.2, prev: 864.4, unit: 'TJ'     },
+      waste_total:  { label: '폐기물 발생량',     value: 920,   prev: 985,   unit: 'ton'    },
+      water_total:  { label: '용수 사용량',       value: 395000,prev: 400298,unit: 'ton'    }
+    },
+    note: '나보타 신공장 가동으로 Scope2 증가'
+  },
+  {
+    id: 'sample_02',
+    dept_name: '인재관리팀', domain_label: '사회 S', contact: '김혜진',
+    submitted_at: '2026-04-02 14:15',
+    status: 'submitted',
+    input_data: {
+      emp_total:          { label: '임직원 총인원',   value: 1790, prev: 1757, unit: '명' },
+      emp_female:         { label: '여성 임직원',     value: 660,  prev: 632,  unit: '명' },
+      female_manager:     { label: '여성 관리자 수',  value: 20,   prev: 18,   unit: '명' },
+      voluntary_turnover: { label: '자발적 이직률',   value: 16.8, prev: 18.3, unit: '%'  },
+      training_hours:     { label: '총 교육 시간',    value: 34200,prev: 31315,unit: '시간'}
+    },
+    note: ''
+  },
+  {
+    id: 'sample_03',
+    dept_name: 'IR팀', domain_label: '경제 ECO', contact: '탁효철',
+    submitted_at: '2026-04-02 16:44',
+    status: 'confirmed',
+    input_data: {
+      dp_revenue:          { label: '대웅제약 매출',  value: 14890, prev: 14230, unit: '억원' },
+      dp_operating_profit: { label: '대웅제약 영업이익', value: 1650, prev: 1480, unit: '억원' },
+      rd_investment:       { label: 'R&D 투자액',    value: 2480,  prev: 2346,  unit: '억원' }
+    },
+    note: ''
+  }
+];
+
+let selectedId = null;
+
+function renderList() {
+  const STATUS_LABEL = { submitted:'검토 대기', confirmed:'확인 완료', rejected:'반려', pending:'미제출' };
+  const STATUS_CLASS = { submitted:'badge-submitted', confirmed:'badge-confirmed', rejected:'badge-rejected', pending:'badge-pending' };
+  document.getElementById('submission-list').innerHTML = SAMPLE_SUBMISSIONS.map(s => `
+    <div class="submission-row${selectedId===s.id?' active':''}" onclick="selectSubmission('${s.id}')">
+      <div style="flex:1;min-width:0">
+        <div style="font-size:13px;font-weight:500">${s.dept_name}</div>
+        <div style="font-size:11px;color:var(--text-2);margin-top:2px">${s.domain_label} · ${s.contact}</div>
+        <div style="font-size:11px;color:var(--text-3);margin-top:2px">${s.submitted_at}</div>
+      </div>
+      <span class="badge ${STATUS_CLASS[s.status]}">${STATUS_LABEL[s.status]}</span>
+    </div>`).join('');
+}
+
+function selectSubmission(id) {
+  selectedId = id;
+  renderList();
+  const s = SAMPLE_SUBMISSIONS.find(x => x.id === id);
+  renderReview(s);
+}
+
+function renderReview(s) {
+  const panel = document.getElementById('review-panel');
+  if (!s) { panel.innerHTML = '<div class="empty-state">선택된 항목이 없습니다.</div>'; return; }
+
+  const isConfirmed = s.status === 'confirmed';
+  const isRejected  = s.status === 'rejected';
+
+  // diff 행 생성
+  const diffRows = Object.entries(s.input_data).map(([k, v]) => {
+    const chg = v.prev ? ((v.value - v.prev) / v.prev * 100).toFixed(1) : null;
+    const isUp = chg !== null && parseFloat(chg) > 0;
+    const rowClass = isUp ? 'row-up' : 'row-down';
+    const badgeClass = chg === null ? 'zero' : isUp ? 'up' : 'down';
+    const badgeText  = chg === null ? '—' : (isUp?'▲':'▼') + Math.abs(chg) + '%';
+    return `<tr class="${rowClass}">
+      <td style="color:var(--text-2);font-size:12px">${v.label}</td>
+      <td><span class="old-val">${v.prev.toLocaleString()}</span></td>
+      <td>
+        <span class="new-val">${parseFloat(v.value).toLocaleString()}</span>
+        <span class="diff-badge ${badgeClass}">${badgeText}</span>
+      </td>
+      <td style="font-size:11px;color:var(--text-3)">${v.unit}</td>
+      <td style="font-size:11px;color:var(--text-3)">${s.contact} · ${s.submitted_at}</td>
+    </tr>`;
+  }).join('');
+
+  // data.json 반영 코드 생성
+  const jsonCode = Object.entries(s.input_data).map(([k, v]) =>
+    `<span class="code-key">"${k}"</span>: { ..., <span class="code-old">"2024": ${v.prev}</span>, <span class="code-new">"2025": ${v.value}</span> }`
+  ).join('\n');
+
+  panel.innerHTML = `
+    <div class="card">
+      <div style="display:flex;align-items:center;gap:12px;margin-bottom:16px;flex-wrap:wrap">
+        <div>
+          <div style="font-size:15px;font-weight:700">${s.dept_name} · ${s.domain_label}</div>
+          <div style="font-size:12px;color:var(--text-2);margin-top:2px">${s.contact} 제출 · ${s.submitted_at}</div>
+        </div>
+        ${s.note ? `<div style="margin-left:auto;font-size:12px;background:#fff8e1;border:1px solid #fde68a;border-radius:6px;padding:6px 12px;color:#92400e">특이사항: ${s.note}</div>` : ''}
+      </div>
+
+      <div style="font-size:13px;font-weight:500;color:var(--text-2);margin-bottom:10px">
+        User가 입력한 값은 아래와 같습니다. 해당 데이터로 반영하시겠습니까?
+      </div>
+
+      <table class="diff-table">
+        <thead><tr>
+          <th>항목</th>
+          <th>이전값 (2024)</th>
+          <th>입력값 (2025)</th>
+          <th>단위</th>
+          <th>변경자 · 시각</th>
+        </tr></thead>
+        <tbody>${diffRows}</tbody>
+      </table>
+
+      ${!isConfirmed && !isRejected ? `
+        <div style="display:flex;gap:10px;margin-top:16px;align-items:center">
+          <button class="btn-yes" onclick="handleYes('${s.id}')">✅ Yes — data.json에 반영</button>
+          <button class="btn-no"  onclick="handleNo('${s.id}')">🔴 No — 반려 및 재입력 요청</button>
+        </div>
+        <div id="action-area-${s.id}" style="margin-top:14px"></div>
+      ` : isConfirmed ? `
+        <div style="margin-top:14px;padding:12px;background:var(--green-bg);border-radius:6px;font-size:13px;color:var(--green)">
+          ✅ 이미 확인 완료된 항목입니다.
+        </div>` : `
+        <div style="margin-top:14px;padding:12px;background:var(--red-bg);border-radius:6px;font-size:13px;color:var(--red)">
+          🔴 반려 처리된 항목입니다. ${s.reject_reason ? '사유: ' + s.reject_reason : ''}
+        </div>`}
+    </div>
+
+    ${!isConfirmed && !isRejected ? `
+    <div class="card" id="json-area-${s.id}" style="display:none">
+      <div style="font-size:13px;font-weight:500;margin-bottom:8px">data.json 수정 내용</div>
+      <div class="code-block">${jsonCode}</div>
+      <div style="font-size:12px;color:var(--text-2);margin-top:10px;line-height:1.7">
+        1. esg-data 저장소 → data.json에서 위 항목의 "2025" 값을 수정 후 Commit<br>
+        2. submission.json → <strong>${s.id}</strong> → status: <strong>"confirmed"</strong>로 변경 후 Commit
+      </div>
+      <button onclick="markDone('${s.id}')" style="margin-top:10px;padding:8px 16px;background:var(--green);color:#fff;border:none;border-radius:6px;font-size:12px;cursor:pointer;font-family:'Noto Sans KR',sans-serif">
+        반영 완료 처리
+      </button>
+    </div>` : ''}`;
+}
+
+function handleYes(id) {
+  document.getElementById(`action-area-${id}`).innerHTML = '';
+  const jsonArea = document.getElementById(`json-area-${id}`);
+  if (jsonArea) jsonArea.style.display = 'block';
+  window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' });
+}
+
+function handleNo(id) {
+  const area = document.getElementById(`action-area-${id}`);
+  area.innerHTML = `
+    <div style="background:var(--red-bg);border:1px solid #fca5a5;border-radius:8px;padding:14px">
+      <div style="font-size:13px;font-weight:500;color:var(--red);margin-bottom:8px">반려 사유를 입력해 주세요</div>
+      <textarea id="reject-reason-input-${id}" class="reject-input" rows="3" placeholder="예: 2025년 실적이 아닌 2024년 실적이 입력된 것으로 보입니다. 확인 후 재제출해 주세요."></textarea>
+      <div style="display:flex;gap:8px;margin-top:10px">
+        <button class="btn-no" onclick="confirmReject('${id}')">반려 확정</button>
+        <button onclick="document.getElementById('action-area-${id}').innerHTML=''" style="padding:8px 16px;background:var(--bg);border:1px solid var(--border);border-radius:6px;font-size:12px;cursor:pointer;font-family:'Noto Sans KR',sans-serif">취소</button>
+      </div>
+    </div>`;
+}
+
+function confirmReject(id) {
+  const reason = document.getElementById(`reject-reason-input-${id}`)?.value?.trim();
+  const area = document.getElementById(`action-area-${id}`);
+  area.innerHTML = `
+    <div style="background:var(--red-bg);border:1px solid #fca5a5;border-radius:8px;padding:14px">
+      <div style="font-size:13px;font-weight:500;color:var(--red);margin-bottom:6px">🔴 반려 처리 완료</div>
+      <div style="font-size:12px;color:var(--red);line-height:1.7">
+        반려 사유: <strong>${reason || '(미입력)'}</strong><br>
+        submission.json → <strong>${id}</strong> → status: <strong>"rejected"</strong>, reject_reason: <strong>"${reason || ''}"</strong>로 변경하세요.<br>
+        User가 다음 login 시 반려 사유와 함께 재입력 안내가 표시됩니다.
+      </div>
+    </div>`;
+  if (sessionStorage.getItem('esg_submitted')) sessionStorage.removeItem('esg_submitted');
+}
+
+function markDone(id) {
+  const s = SAMPLE_SUBMISSIONS.find(x => x.id === id);
+  if (s) s.status = 'confirmed';
+  if (sessionStorage.getItem('esg_submitted')) sessionStorage.removeItem('esg_submitted');
+  renderList();
+  renderReview(SAMPLE_SUBMISSIONS.find(x => x.id === id));
+}
+
+// 초기 렌더
+renderList();
+// 실시간 제출 건 자동 선택
+if (liveSubmission && SAMPLE_SUBMISSIONS.length > 0) {
+  selectSubmission(SAMPLE_SUBMISSIONS[0].id);
+}
+</script>
+</body>
+</html>

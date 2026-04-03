@@ -189,9 +189,119 @@
     gap: 8px;
   }
 
-  @media (max-width: 600px) {
-    .card { padding: 24px 20px; }
-    .domain-grid { grid-template-columns: 1fr; }
+  /* 스플릿 레이아웃 (step2 전용) */
+  .split-layout {
+    display: flex;
+    gap: 0;
+    height: calc(100vh - 64px);
+    overflow: hidden;
+  }
+  .sheet-pane {
+    flex: 0 0 68%;
+    overflow: auto;
+    border-right: 1px solid var(--border);
+    background: var(--surface);
+    padding: 20px 0 20px 20px;
+  }
+  .form-pane {
+    flex: 0 0 32%;
+    overflow-y: auto;
+    background: var(--bg);
+    padding: 20px 16px;
+  }
+
+  /* 스프레드시트 테이블 */
+  .ss-table { border-collapse: collapse; font-size: 12px; width: 100%; min-width: 560px; }
+  .ss-table th {
+    background: #f1efe8;
+    padding: 8px 12px;
+    text-align: right;
+    font-weight: 500;
+    color: var(--text-2);
+    border: 1px solid var(--border);
+    white-space: nowrap;
+    position: sticky; top: 0; z-index: 2;
+  }
+  .ss-table th.label-col { text-align: left; min-width: 180px; }
+  .ss-table th.year-2025 { background: #e8f4fd; color: #1d4e89; }
+  .ss-table td {
+    padding: 7px 12px;
+    border: 1px solid var(--border);
+    text-align: right;
+    font-family: 'DM Mono', monospace;
+    font-size: 12px;
+    color: var(--text-1);
+    white-space: nowrap;
+  }
+  .ss-table td.label-col {
+    text-align: left;
+    font-family: 'Noto Sans KR', sans-serif;
+    font-size: 12px;
+    color: var(--text-2);
+    background: #fafaf8;
+    position: sticky; left: 0; z-index: 1;
+  }
+  .ss-table td.section-header {
+    background: #f4f4f0;
+    font-family: 'Noto Sans KR', sans-serif;
+    font-weight: 500;
+    color: var(--text-1);
+    font-size: 11px;
+    letter-spacing: 0.05em;
+    text-align: left;
+  }
+  .ss-table td.cell-2025 {
+    background: #e8f4fd;
+    color: #1d4e89;
+  }
+  .ss-table td.cell-2025.has-value {
+    background: #dbeafe;
+    font-weight: 500;
+    color: #1e3a8a;
+  }
+  .ss-table td.cell-2025.just-edited {
+    background: #bfdbfe;
+    color: #1e3a8a;
+    font-weight: 700;
+    transition: background 0.3s;
+  }
+  .ss-table tr:hover td { background-color: #f9f9f7; }
+  .ss-table tr:hover td.label-col { background-color: #f1efe8; }
+  .ss-table tr:hover td.cell-2025 { background-color: #dbeafe; }
+  .ss-table tr:hover td.cell-2025.has-value { background-color: #bfdbfe; }
+
+  /* 우측 폼 패널 */
+  .form-pane .form-title { font-size: 14px; font-weight: 700; margin-bottom: 4px; }
+  .form-pane .form-sub   { font-size: 11px; color: var(--text-2); margin-bottom: 16px; line-height: 1.5; }
+  .form-pane .field { margin-bottom: 12px; }
+  .form-pane .field label {
+    display: flex; justify-content: space-between;
+    font-size: 11px; font-weight: 500; color: var(--text-2); margin-bottom: 4px;
+  }
+  .form-pane .field input {
+    width: 100%; padding: 7px 10px;
+    border: 1px solid var(--border); border-radius: 6px;
+    font-size: 13px; font-family: 'DM Mono', monospace;
+    color: var(--text-1); background: var(--surface);
+  }
+  .form-pane .field input:focus { outline: none; border-color: #1d4e89; box-shadow: 0 0 0 2px #bfdbfe; }
+  .form-pane .section-label {
+    font-size: 10px; font-weight: 500; letter-spacing: 0.07em;
+    color: var(--text-3); text-transform: uppercase;
+    margin: 14px 0 8px; padding-top: 12px;
+    border-top: 1px solid var(--border);
+  }
+  .form-pane .unit-wrap { display: flex; align-items: center; gap: 6px; }
+  .form-pane .unit-tag {
+    font-size: 11px; color: var(--text-3);
+    white-space: nowrap; min-width: 44px;
+  }
+  .form-pane .req-star { color: var(--red); }
+
+  @media (max-width: 900px) {
+    .split-layout { flex-direction: column; height: auto; }
+    .sheet-pane { flex: none; border-right: none; border-bottom: 1px solid var(--border); max-height: 40vh; }
+    .form-pane  { flex: none; }
   }
 </style>
 </head>
@@ -206,37 +316,23 @@
   </div>
 </header>
 
-<main class="main">
-<div class="card">
+<main id="main-wrap">
 
-  <!-- 스텝 인디케이터 -->
+<!-- ── STEP 1 + 3: 카드 레이아웃 ── -->
+<div style="display:flex;align-items:flex-start;justify-content:center;padding:40px 16px" id="step13-wrap">
+<div class="card">
   <div class="steps">
-    <div class="step active" id="step1-ind">
-      <div class="step-dot">1</div>
-      <span>담당자 확인</span>
-    </div>
+    <div class="step active" id="step1-ind"><div class="step-dot">1</div><span>담당자 확인</span></div>
     <div class="step-line"></div>
-    <div class="step" id="step2-ind">
-      <div class="step-dot">2</div>
-      <span>데이터 제출</span>
-    </div>
+    <div class="step" id="step2-ind"><div class="step-dot">2</div><span>데이터 입력</span></div>
     <div class="step-line"></div>
-    <div class="step" id="step3-ind">
-      <div class="step-dot">3</div>
-      <span>제출 완료</span>
-    </div>
+    <div class="step" id="step3-ind"><div class="step-dot">3</div><span>제출 완료</span></div>
   </div>
 
-  <!-- ── STEP 1: 담당자 확인 ── -->
   <div id="step1">
     <div class="form-title">담당자 확인</div>
-    <div class="form-sub">담당 부서와 영역을 선택해 주세요.<br>입력하신 정보는 제출 현황 관리에 사용됩니다.</div>
-
-    <div class="deadline-banner">
-      <span>마감일</span>
-      <strong id="deadline-text">2026년 5월 11일</strong>
-    </div>
-
+    <div class="form-sub">담당 부서와 영역을 선택해 주세요.</div>
+    <div class="deadline-banner"><span>마감일</span><strong>2026년 5월 11일</strong></div>
     <div class="field">
       <label>법인 선택</label>
       <select id="company-select">
@@ -245,58 +341,52 @@
         <option value="daewoong">㈜대웅</option>
       </select>
     </div>
-
     <div class="field">
       <label>담당 부서</label>
-      <select id="dept-select" disabled>
-        <option value="">법인을 먼저 선택해 주세요</option>
-      </select>
+      <select id="dept-select" disabled><option value="">법인을 먼저 선택해 주세요</option></select>
     </div>
-
     <div class="field">
       <label>담당자 이름</label>
       <input type="text" id="contact-input" placeholder="성명을 입력해 주세요" disabled />
     </div>
-
     <button class="btn-primary" id="btn-step1" disabled onclick="goStep2()">다음 단계로</button>
   </div>
 
-  <!-- ── STEP 2: 데이터 제출 ── -->
-  <div id="step2" style="display:none">
-    <div class="form-title">데이터 제출</div>
-    <div class="form-sub" id="step2-sub">담당 영역의 ESG 데이터를 제출해 주세요.</div>
-
-    <div class="reject-banner" id="reject-banner">
-      <strong>반려 사유:</strong> <span id="reject-reason-text"></span>
-    </div>
-
-    <div class="field">
-      <label>제출 영역</label>
-      <div class="domain-grid" id="domain-grid"></div>
-    </div>
-
-    <div class="field">
-      <label>특이사항 (선택)</label>
-      <textarea id="note-input" placeholder="데이터 관련 특이사항이 있으면 입력해 주세요 (예: 나보타 신공장 증설로 인한 온실가스 증가 등)"></textarea>
-    </div>
-
-    <!-- 세부 항목 폼 (영역 선택 후 표시) -->
-    <div id="detail-form-container" style="display:none"></div>
-
-    <button class="btn-primary" id="btn-step2" onclick="submitData()" disabled>제출하기</button>
-  </div>
-
-  <!-- ── STEP 3: 완료 ── -->
   <div id="step3" style="display:none">
     <div class="complete-wrap">
       <div class="complete-icon">✓</div>
       <div class="complete-title">제출이 완료되었습니다</div>
-      <div class="complete-sub">
-        ESG팀에서 내용을 검토한 후 확인 처리합니다.<br>
-        반려될 경우 재제출 요청을 드릴 예정입니다.
-      </div>
+      <div class="complete-sub">ESG팀 Admin이 데이터를 검토 후 반영합니다.</div>
       <div class="complete-info" id="complete-info"></div>
     </div>
+  </div>
+</div>
+</div>
+
+<!-- ── STEP 2: 스플릿 레이아웃 ── -->
+<div class="split-layout" id="step2-wrap" style="display:none">
+
+  <!-- 좌측 68%: 스프레드시트 뷰 -->
+  <div class="sheet-pane">
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px;padding-right:16px">
+      <div style="font-size:13px;font-weight:700" id="sheet-title"></div>
+      <span style="font-size:11px;color:var(--text-3);margin-left:auto">파란 셀(2025)에 우측 입력값이 실시간 반영됩니다</span>
+    </div>
+    <div id="spreadsheet-view" style="overflow-x:auto"></div>
+  </div>
+
+  <!-- 우측 32%: 입력 폼 -->
+  <div class="form-pane">
+    <div id="reject-banner" class="reject-banner"><strong>반려 사유:</strong> <span id="reject-reason-text"></span></div>
+    <div style="font-size:13px;font-weight:700;margin-bottom:4px">데이터 입력</div>
+    <div style="font-size:11px;color:var(--text-2);margin-bottom:12px" id="step2-sub">영역을 선택하세요</div>
+    <div id="domain-grid" class="domain-grid" style="margin-bottom:12px"></div>
+    <div id="detail-form-container" style="display:none"></div>
+    <div style="margin-top:8px">
+      <label style="font-size:11px;font-weight:500;color:var(--text-2);display:block;margin-bottom:4px">특이사항 (선택)</label>
+      <textarea id="note-input" style="width:100%;padding:8px 10px;border:1px solid var(--border);border-radius:6px;font-size:12px;font-family:'Noto Sans KR',sans-serif;resize:vertical;min-height:56px" placeholder="특이사항"></textarea>
+    </div>
+    <button class="btn-primary" id="btn-step2" onclick="submitData()" disabled style="margin-top:10px">제출하기</button>
   </div>
 
 </div>
@@ -368,20 +458,16 @@ function checkStep1() {
 
 function goStep2() {
   const deptName = document.getElementById("dept-select").value;
-
-  // 해당 부서의 담당 영역 목록 구성
   const deptItems = SUBMISSION_DATA.departments.filter(d => d.company === selectedCompany && d.dept_name === deptName);
+  const rejected  = deptItems.filter(d => d.status === "rejected");
 
-  // 반려 항목 확인
-  const rejected = deptItems.filter(d => d.status === "rejected");
-
-  // 스텝1 → 스텝2
+  // Step1 카드 → 스플릿 레이아웃 전환
+  document.getElementById("step13-wrap").style.display = "none";
+  document.getElementById("step2-wrap").style.display  = "flex";
   document.getElementById("step1").style.display = "none";
-  document.getElementById("step2").style.display = "block";
-  setStep(2);
 
-  const compLabel = COMPANY_LABELS[selectedCompany];
-  document.getElementById("step2-sub").textContent = `${compLabel} ${deptName} 담당 영역의 ESG 데이터를 제출해 주세요.`;
+  // 스텝 인디케이터 업데이트
+  setStep(2);
 
   // 반려 배너
   if (rejected.length > 0) {
@@ -389,46 +475,257 @@ function goStep2() {
     document.getElementById("reject-reason-text").textContent = rejected.map(d => `[${d.domain_label}] ${d.reject_reason || "재제출 요청"}`).join(" / ");
   }
 
-  // 영역 선택 카드 렌더
+  // 우측: 영역 선택 카드 렌더
+  const DOMAIN_COLORS = { E:"#d8f3dc", S:"#dbeafe", G:"#ede9fe", ECO:"#fff3cd" };
+  const DOMAIN_ICONS  = { E:"🌱", S:"🤝", G:"🏛", ECO:"📊" };
   const grid = document.getElementById("domain-grid");
   grid.innerHTML = deptItems.map(d => {
-    const bg = DOMAIN_COLORS[d.domain] || "#f4f4f0";
-    const icon = DOMAIN_ICONS[d.domain] || "📋";
-    const statusLabel = d.status === "submitted" ? "제출완료" : d.status === "confirmed" ? "확인완료" : d.status === "rejected" ? "반려됨" : "미제출";
-    const statusColor = d.status === "confirmed" ? "#2d6a4f" : d.status === "submitted" ? "#1d4e89" : d.status === "rejected" ? "#c1121f" : "#9a9a92";
-    return `
-      <label class="domain-card" style="${d.status !== 'pending' && d.status !== 'rejected' ? 'opacity:0.5;pointer-events:none;' : ''}">
-        <input type="radio" name="domain" value="${d.dept_id}" onchange="selectDomain('${d.dept_id}')">
-        <div style="display:flex;justify-content:space-between;align-items:flex-start">
-          <span style="font-size:18px">${icon}</span>
-          <span style="font-size:11px;font-weight:500;color:${statusColor}">${statusLabel}</span>
-        </div>
-        <div class="domain-label" style="margin-top:8px">${d.domain_label} (${d.domain})</div>
-        <div class="domain-sub">${d.item_count}개 항목</div>
-      </label>`;
+    const statusLabel = { submitted:"제출완료", confirmed:"확인완료", rejected:"반려됨", pending:"미제출" }[d.status] || d.status;
+    const statusColor = { confirmed:"#2d6a4f", submitted:"#1d4e89", rejected:"#c1121f", pending:"#9a9a92" }[d.status];
+    const disabled = d.status !== 'pending' && d.status !== 'rejected';
+    return `<label class="domain-card${disabled?' ':" "}" style="${disabled?'opacity:0.5;pointer-events:none;':''}">
+      <input type="radio" name="domain" value="${d.dept_id}" onchange="selectDomain('${d.dept_id}')">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start">
+        <span style="font-size:16px">${DOMAIN_ICONS[d.domain]||"📋"}</span>
+        <span style="font-size:10px;font-weight:500;color:${statusColor}">${statusLabel}</span>
+      </div>
+      <div class="domain-label" style="margin-top:6px;font-size:12px">${d.domain_label} (${d.domain})</div>
+    </label>`;
   }).join("");
+
+  // 좌측: 스프레드시트 초기 렌더 (전체 항목, 2025 빈칸)
+  renderSpreadsheet(null);
+}
+
+// ── 전체 ESG 스프레드시트 데이터 정의 ──
+const ALL_SHEET_DATA = {
+  E: {
+    label: "환경 (E)",
+    sections: [
+      { label: "온실가스 배출량", items: [
+        { id: "scope1",        label: "Scope1 직접배출",        unit: "tCO2eq",      y2022: 10131,  y2023: 10184,  y2024: 11534  },
+        { id: "scope2",        label: "Scope2 간접배출(전력)",  unit: "tCO2eq",      y2022: 24510,  y2023: 24522,  y2024: 30903  },
+        { id: "scope1_2_sum",  label: "Scope1+2 합계",          unit: "tCO2eq",      y2022: 34641,  y2023: 34706,  y2024: 42437, required: true },
+        { id: "ghg_intensity", label: "온실가스 원단위",         unit: "tCO2eq/억원", y2022: 3.136,  y2023: 2.939,  y2024: 3.087  }
+      ]},
+      { label: "에너지 사용량", items: [
+        { id: "energy_lng",       label: "직접에너지 LNG",   unit: "TJ",      y2022: 181.7, y2023: 185.2, y2024: 210.6, required: true },
+        { id: "energy_oil",       label: "직접에너지 경유",  unit: "TJ",      y2022: 5.2,   y2023: 4.8,   y2024: 5.1   },
+        { id: "energy_elec",      label: "간접에너지 전력",  unit: "TJ",      y2022: 563.2, y2023: 571.9, y2024: 648.7, required: true },
+        { id: "energy_total",     label: "에너지 사용량 계", unit: "TJ",      y2022: 750.1, y2023: 761.9, y2024: 864.4, required: true },
+        { id: "energy_intensity", label: "에너지 원단위",    unit: "TJ/억원", y2022: 0.0661,y2023: 0.0626,y2024: 0.0621 }
+      ]},
+      { label: "폐기물", items: [
+        { id: "waste_total",    label: "폐기물 발생량 합계", unit: "ton", y2022: 1129, y2023: 1159, y2024: 985, required: true },
+        { id: "waste_recycled", label: "재활용량",           unit: "ton", y2022: 501,  y2023: 523,  y2024: 501, required: true }
+      ]},
+      { label: "용수", items: [
+        { id: "water_total",  label: "용수 사용량 합계", unit: "ton", y2022: 310596, y2023: 343083, y2024: 400298, required: true },
+        { id: "water_reused", label: "재이용량",         unit: "ton", y2022: 38960,  y2023: 40960,  y2024: 40960,  required: true }
+      ]},
+      { label: "대기오염물질", items: [
+        { id: "nox",  label: "NOx",  unit: "ton", y2022: null, y2023: 5.812, y2024: 6.776 },
+        { id: "sox",  label: "SOx",  unit: "ton", y2022: null, y2023: 0.271, y2024: 0.082 },
+        { id: "dust", label: "먼지", unit: "ton", y2022: 0.594,y2023: 0.671, y2024: 0.447 }
+      ]},
+      { label: "수질오염물질", items: [
+        { id: "toc", label: "TOC", unit: "ton", y2022: 4.654, y2023: 4.457, y2024: 5.788 },
+        { id: "bod", label: "BOD", unit: "ton", y2022: 7.538, y2023: 5.832, y2024: 5.100 },
+        { id: "ss",  label: "SS",  unit: "ton", y2022: 4.688, y2023: 3.219, y2024: 4.905 }
+      ]}
+    ]
+  },
+  S: {
+    label: "사회 (S)",
+    sections: [
+      { label: "임직원 현황", items: [
+        { id: "emp_total",    label: "임직원 총인원",    unit: "명", y2022: 1644, y2023: 1732, y2024: 1757, required: true },
+        { id: "emp_fulltime", label: "정규직",           unit: "명", y2022: 1624, y2023: 1674, y2024: 1669, required: true },
+        { id: "emp_parttime", label: "기간제(계약직)",   unit: "명", y2022: 20,   y2023: 58,   y2024: 88,   required: true },
+        { id: "emp_male",     label: "남성",             unit: "명", y2022: 1115, y2023: 1136, y2024: 1125, required: true },
+        { id: "emp_female",   label: "여성",             unit: "명", y2022: 529,  y2023: 596,  y2024: 632,  required: true },
+        { id: "female_ratio", label: "여성 비율",        unit: "%",  y2022: 32.2, y2023: 34.4, y2024: 36.0 }
+      ]},
+      { label: "여성 관리자 및 이직", items: [
+        { id: "female_manager",     label: "여성 관리자 수",  unit: "명", y2022: 15,   y2023: 16,   y2024: 18,   required: true },
+        { id: "female_mgr_ratio",   label: "여성 관리자 비율",unit: "%",  y2022: 10.0, y2023: 9.0,  y2024: 10.0 },
+        { id: "voluntary_turnover", label: "자발적 이직률",   unit: "%",  y2022: null, y2023: 23.4, y2024: 18.3, required: true }
+      ]},
+      { label: "안전보건", items: [
+        { id: "accident_workers", label: "산업재해자 수", unit: "명", y2022: 0, y2023: 1,    y2024: 2,    required: true },
+        { id: "accident_rate",    label: "산업재해율",    unit: "%",  y2022: 0, y2023: 0.03, y2024: 0.07, required: true },
+        { id: "fatal_accidents",  label: "사망사고",      unit: "건", y2022: 0, y2023: 0,    y2024: 0,    required: true }
+      ]},
+      { label: "교육 및 사회공헌", items: [
+        { id: "training_hours",     label: "총 교육 시간",     unit: "시간",    y2022: 26298,  y2023: 33820,  y2024: 31315, required: true },
+        { id: "training_cost",      label: "총 교육 비용",     unit: "백만원",  y2022: 288,    y2023: 569,    y2024: 587 },
+        { id: "social_investment",  label: "사회공헌 투자액",  unit: "백만원",  y2022: 2155.9, y2023: 2414.0, y2024: 2932.0 },
+        { id: "it_security_ratio",  label: "정보보호 투자 비율", unit: "%",     y2022: 13.11,  y2023: 6.58,   y2024: 7.18 }
+      ]}
+    ]
+  },
+  G: {
+    label: "지배구조 (G)",
+    sections: [
+      { label: "이사회 구성 — 대웅제약", items: [
+        { id: "dp_board_total",    label: "전체 이사 수",     unit: "명", y2022: null, y2023: null, y2024: 6, required: true },
+        { id: "dp_board_inside",   label: "사내이사",         unit: "명", y2022: null, y2023: null, y2024: 3, required: true },
+        { id: "dp_board_outside",  label: "사외이사",         unit: "명", y2022: null, y2023: null, y2024: 3, required: true },
+        { id: "dp_board_female",   label: "여성 등기임원",    unit: "명", y2022: null, y2023: null, y2024: 1, required: true },
+        { id: "dp_board_meetings", label: "이사회 개최 횟수", unit: "회", y2022: null, y2023: null, y2024: 9, required: true }
+      ]},
+      { label: "이사회 구성 — 대웅(지주)", items: [
+        { id: "dw_board_total",    label: "전체 이사 수",     unit: "명", y2022: null, y2023: null, y2024: 5, required: true },
+        { id: "dw_board_inside",   label: "사내이사",         unit: "명", y2022: null, y2023: null, y2024: 2, required: true },
+        { id: "dw_board_outside",  label: "사외이사",         unit: "명", y2022: null, y2023: null, y2024: 3, required: true },
+        { id: "dw_board_female",   label: "여성 등기임원",    unit: "명", y2022: null, y2023: null, y2024: 0, required: true },
+        { id: "dw_board_meetings", label: "이사회 개최 횟수", unit: "회", y2022: null, y2023: null, y2024: 5, required: true }
+      ]}
+    ]
+  },
+  ECO: {
+    label: "경제 (ECO)",
+    sections: [
+      { label: "대웅제약 재무성과 (연결기준)", items: [
+        { id: "dp_revenue",          label: "매출",        unit: "억원", y2022: 12800, y2023: 13750, y2024: 14230, required: true },
+        { id: "dp_operating_profit", label: "영업이익",    unit: "억원", y2022: 960,   y2023: 1230,  y2024: 1480,  required: true },
+        { id: "dp_net_profit",       label: "당기순이익",  unit: "억원", y2022: 390,   y2023: 1200,  y2024: 230,   required: true },
+        { id: "dp_total_assets",     label: "총자산",      unit: "억원", y2022: 15630, y2023: 17700, y2024: 19770, required: true }
+      ]},
+      { label: "대웅(지주) 재무성과 (연결기준)", items: [
+        { id: "dw_revenue",          label: "영업수익",    unit: "억원", y2022: 16970, y2023: 18140, y2024: 19370, required: true },
+        { id: "dw_operating_profit", label: "영업이익",    unit: "억원", y2022: 2070,  y2023: 1960,  y2024: 2820,  required: true },
+        { id: "dw_net_profit",       label: "당기순이익",  unit: "억원", y2022: 1200,  y2023: 1910,  y2024: 690,   required: true },
+        { id: "dw_total_assets",     label: "총자산",      unit: "억원", y2022: 21590, y2023: 23590, y2024: 27210, required: true }
+      ]},
+      { label: "연구개발 (공통)", items: [
+        { id: "rd_investment", label: "R&D 투자액",   unit: "억원", y2022: 2014, y2023: 2066, y2024: 2346, required: true },
+        { id: "rd_ratio",      label: "R&D 집중도",   unit: "%",    y2022: 17.3, y2023: 16.9, y2024: 18.5 }
+      ]}
+    ]
+  }
+};
+
+let activeSheetTab = 'E';
+
+// ── 스프레드시트 렌더 (탭 방식) ──
+function renderSpreadsheet(activeDeptId) {
+  const container = document.getElementById("spreadsheet-view");
+  const titleEl   = document.getElementById("sheet-title");
+  if (activeDeptId) {
+    const schema = FORM_SCHEMA[activeDeptId];
+    titleEl.textContent = schema ? schema.title + ' — 2025년 실적 입력' : '데이터 입력';
+    // 해당 영역 탭으로 자동 이동
+    const domainMap = { env_01:'E', env_02:'E', soc_01:'S', soc_02:'S', gov_01:'G', gov_02:'G', eco_01:'ECO' };
+    activeSheetTab = domainMap[activeDeptId] || 'E';
+  } else {
+    titleEl.textContent = '전체 ESG 데이터 현황 (2025년 입력 예정)';
+  }
+  renderSheetTab(activeSheetTab);
+}
+
+function renderSheetTab(tab) {
+  activeSheetTab = tab;
+  const container = document.getElementById("spreadsheet-view");
+  const tabData = ALL_SHEET_DATA[tab];
+  const tabs = ['E','S','G','ECO'];
+
+  const tabBar = `<div style="display:flex;gap:0;border-bottom:2px solid var(--border);margin-bottom:0">
+    ${tabs.map(t => `
+      <button onclick="renderSheetTab('${t}')"
+        style="padding:8px 18px;border:none;background:${t===tab?'#fff':'#f4f4f0'};
+               font-family:'Noto Sans KR',sans-serif;font-size:12px;font-weight:${t===tab?'700':'400'};
+               color:${t===tab?'#1d4e89':'#5a5a54'};cursor:pointer;
+               border-bottom:${t===tab?'2px solid #1d4e89':'2px solid transparent'};
+               margin-bottom:-2px;white-space:nowrap">
+        ${ALL_SHEET_DATA[t].label}
+      </button>`).join('')}
+  </div>`;
+
+  const rows = [];
+  tabData.sections.forEach(sec => {
+    rows.push({ isHeader: true, label: sec.label });
+    sec.items.forEach(item => rows.push({ ...item, isHeader: false }));
+  });
+
+  const fmt = v => v === null || v === undefined ? '<span style="color:#d1d5db">—</span>' : Number(v).toLocaleString('ko-KR');
+
+  const table = `<div style="overflow-x:auto">
+    <table class="ss-table">
+      <thead><tr>
+        <th class="label-col">항목</th>
+        <th>2022</th><th>2023</th><th>2024</th>
+        <th class="year-2025">2025 <span style="font-weight:400;font-size:10px">(입력)</span></th>
+        <th>단위</th>
+      </tr></thead>
+      <tbody>
+        ${rows.map(row => {
+          if (row.isHeader) return `<tr><td class="section-header" colspan="6">${row.label}</td></tr>`;
+          const val = formValues[row.id];
+          const hasVal = val !== undefined && val !== '';
+          const cellCls = `cell-2025${hasVal ? ' has-value' : ''}`;
+          const display = hasVal ? parseFloat(val).toLocaleString('ko-KR') : '<span style="color:#bfdbfe;font-size:11px">미입력</span>';
+          return `<tr id="ss-row-${row.id}">
+            <td class="label-col">${row.label}${row.required ? ' <span style="color:#c1121f;font-size:10px">*</span>' : ''}</td>
+            <td>${fmt(row.y2022)}</td>
+            <td>${fmt(row.y2023)}</td>
+            <td style="font-weight:500">${fmt(row.y2024)}</td>
+            <td class="${cellCls}" id="ss-cell-${row.id}">${display}</td>
+            <td style="color:var(--text-3);font-size:11px">${row.unit}</td>
+          </tr>`;
+        }).join('')}
+      </tbody>
+    </table>
+  </div>`;
+
+  container.innerHTML = tabBar + table;
+}
+
+// ── 셀 실시간 업데이트 ──
+function updateSheetCell(fieldId, value) {
+  const cell = document.getElementById(`ss-cell-${fieldId}`);
+  if (!cell) return;
+  if (value === '' || value === null) {
+    cell.className = 'cell-2025';
+    cell.innerHTML = '<span style="color:#b5d4f4">입력 대기</span>';
+  } else {
+    cell.className = 'cell-2025 has-value just-edited';
+    cell.textContent = parseFloat(value).toLocaleString('ko-KR');
+    setTimeout(() => cell.classList.remove('just-edited'), 800);
+  }
 }
 
 function selectDomain(deptId) {
   selectedDomain = deptId;
   document.querySelectorAll(".domain-card").forEach(c => c.classList.remove("selected"));
   event.currentTarget.classList.add("selected");
+  formValues = {};
 
-  // 세부 항목 폼 렌더
+  // 스프레드시트 렌더
+  renderSpreadsheet(deptId);
+
+  // 우측 세부 폼 렌더
   const formContainer = document.getElementById("detail-form-container");
-  if (formContainer) {
-    const schema = FORM_SCHEMA[deptId];
-    if (schema && schema.sections.length) {
-      formValues = {};
-      formContainer.style.display = 'block';
-      formContainer.innerHTML = `
-        <div style="margin-top:20px;padding-top:20px;border-top:1px solid var(--border)">
-          <div style="font-size:13px;font-weight:500;margin-bottom:16px">2025년 실적 데이터 입력 <span style="font-size:11px;color:var(--text-3);font-weight:400">(2026년 보고서 반영)</span></div>
-          ${renderDetailForm(deptId)}
-        </div>`;
-    } else {
-      formContainer.style.display = 'none';
-    }
+  const schema = FORM_SCHEMA[deptId];
+  if (schema && schema.sections.length) {
+    formContainer.style.display = 'block';
+    formContainer.innerHTML = schema.sections.map(sec => `
+      <div class="section-label">${sec.label}</div>
+      ${sec.items.map(item => `
+        <div class="field">
+          <label>
+            <span>${item.label}${item.required ? '<span class="req-star"> *</span>' : ''}</span>
+            <span style="font-family:DM Mono,monospace;font-size:10px;color:var(--text-3)">전년 ${item.prev.toLocaleString()}</span>
+          </label>
+          <div class="unit-wrap">
+            <input type="number" step="any" id="field_${item.id}" placeholder="입력"
+              oninput="formValues['${item.id}']=this.value; updateSheetCell('${item.id}', this.value)"/>
+            <span class="unit-tag">${item.unit}</span>
+          </div>
+        </div>`).join('')}
+    `).join('');
+  } else {
+    formContainer.style.display = 'none';
   }
   document.getElementById("btn-step2").disabled = false;
 }
@@ -667,10 +964,18 @@ function submitData() {
 function setStep(n) {
   [1,2,3].forEach(i => {
     const ind = document.getElementById(`step${i}-ind`);
+    if (!ind) return;
     ind.className = "step" + (i < n ? " done" : i === n ? " active" : "");
     const dot = ind.querySelector(".step-dot");
-    dot.textContent = i < n ? "✓" : String(i);
+    if (dot) dot.textContent = i < n ? "✓" : String(i);
   });
+  // step3: 스플릿 레이아웃 숨기고 카드로 복귀
+  if (n === 3) {
+    document.getElementById("step2-wrap").style.display = "none";
+    document.getElementById("step13-wrap").style.display = "flex";
+    document.getElementById("step1").style.display = "none";
+    document.getElementById("step3").style.display = "block";
+  }
 }
 </script>
 </body>
